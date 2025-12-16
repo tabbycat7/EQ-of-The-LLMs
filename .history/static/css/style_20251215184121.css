@@ -1,0 +1,468 @@
+/* 全局样式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: #333;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+/* 头部样式 */
+.header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 40px;
+    text-align: center;
+}
+
+.logo {
+    font-size: 3em;
+    margin-bottom: 10px;
+    font-weight: 700;
+}
+
+.subtitle {
+    font-size: 1.2em;
+    opacity: 0.9;
+}
+
+/* 模式选择器 */
+.mode-selector {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-bottom: 2px solid #e9ecef;
+    flex-wrap: wrap;
+}
+
+.mode-btn {
+    padding: 12px 24px;
+    border: 2px solid transparent;
+    background: white;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.mode-btn:hover {
+    background: #f0f0f0;
+    transform: translateY(-2px);
+}
+
+.mode-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: #667eea;
+}
+
+/* 内容区域 */
+.mode-content {
+    display: none;
+    padding: 40px;
+}
+
+.mode-content.active {
+    display: block;
+}
+
+.mode-description {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.mode-description h2 {
+    font-size: 2em;
+    margin-bottom: 10px;
+    color: #667eea;
+}
+
+.mode-description p {
+    color: #666;
+    font-size: 1.1em;
+}
+
+/* 按钮样式 */
+.primary-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    font-size: 1.1em;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.primary-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+}
+
+.secondary-btn {
+    background: white;
+    color: #667eea;
+    border: 2px solid #667eea;
+    padding: 12px 30px;
+    font-size: 1em;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+}
+
+.secondary-btn:hover {
+    background: #667eea;
+    color: white;
+}
+
+/* 开始区域 */
+.start-section {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+/* 聊天容器 */
+.chat-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.responses-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.single-response {
+    margin-bottom: 20px;
+}
+
+.response-box {
+    background: #f8f9fa;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.response-box.full-width {
+    width: 100%;
+}
+
+.response-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px;
+    font-weight: 600;
+    font-size: 1.1em;
+    text-align: center;
+}
+
+.response-content {
+    padding: 20px;
+    min-height: 200px;
+    max-height: 400px;
+    overflow-y: auto;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.empty-state {
+    color: #999;
+    text-align: center;
+    padding: 60px 20px;
+    font-style: italic;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #667eea;
+    font-size: 1.2em;
+}
+
+/* 投票区域 */
+.voting-section {
+    text-align: center;
+    padding: 30px;
+    background: #f0f4ff;
+    border-radius: 15px;
+    margin-bottom: 20px;
+}
+
+.voting-section h3 {
+    margin-bottom: 20px;
+    color: #667eea;
+}
+
+.vote-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.vote-btn {
+    padding: 15px 30px;
+    border: 2px solid #667eea;
+    background: white;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.vote-btn:hover {
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* 揭示区域 */
+.reveal-section {
+    text-align: center;
+    padding: 30px;
+    background: #e8f5e9;
+    border-radius: 15px;
+    margin-bottom: 20px;
+}
+
+.reveal-info h3 {
+    margin-bottom: 20px;
+    color: #4caf50;
+}
+
+.reveal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.reveal-item {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.reveal-label {
+    font-weight: 600;
+    color: #666;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.reveal-value {
+    font-size: 1.2em;
+    color: #667eea;
+    font-weight: 700;
+}
+
+/* 输入区域 */
+.input-section {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+.input-section textarea {
+    flex: 1;
+    padding: 15px;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    font-size: 1em;
+    font-family: inherit;
+    resize: vertical;
+    transition: border-color 0.3s ease;
+}
+
+.input-section textarea:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.send-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.send-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 模型选择 */
+.model-selection {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.model-select-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.model-select-group label {
+    font-weight: 600;
+    color: #667eea;
+}
+
+.model-select {
+    padding: 12px 20px;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    font-size: 1em;
+    background: white;
+    cursor: pointer;
+    min-width: 200px;
+}
+
+.model-select:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+/* 排行榜 */
+.leaderboard-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.leaderboard-table {
+    background: white;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.leaderboard-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 120px 120px 120px 120px;
+    gap: 15px;
+    padding: 20px;
+    border-bottom: 1px solid #e9ecef;
+    align-items: center;
+}
+
+.leaderboard-row.header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 700;
+}
+
+.leaderboard-row:hover:not(.header) {
+    background: #f8f9fa;
+}
+
+.rank {
+    font-size: 1.5em;
+    font-weight: 700;
+    color: #667eea;
+    text-align: center;
+}
+
+.model-name {
+    font-weight: 600;
+}
+
+.stat {
+    text-align: center;
+}
+
+.rating {
+    font-size: 1.2em;
+    font-weight: 700;
+    color: #4caf50;
+}
+
+/* 页脚 */
+.footer {
+    background: #2c3e50;
+    color: white;
+    text-align: center;
+    padding: 30px;
+}
+
+.footer p {
+    margin: 5px 0;
+    opacity: 0.8;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .responses-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .reveal-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .leaderboard-row {
+        grid-template-columns: 60px 1fr 80px 80px;
+        gap: 10px;
+        padding: 15px;
+        font-size: 0.9em;
+    }
+
+    .leaderboard-row .stat:nth-child(5),
+    .leaderboard-row .stat:nth-child(6) {
+        display: none;
+    }
+
+    .mode-selector {
+        gap: 5px;
+    }
+
+    .mode-btn {
+        padding: 10px 15px;
+        font-size: 0.9em;
+    }
+
+    .logo {
+        font-size: 2em;
+    }
+}
+

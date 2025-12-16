@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>调试页面 - LMArena</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        select {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 LMArena 调试工具</h1>
+    
+    <div class="section">
+        <h2>1. 检查 DOM 元素</h2>
+        <button onclick="checkElements()">检查元素</button>
+        <div id="element-status"></div>
+    </div>
+    
+    <div class="section">
+        <h2>2. 测试 API 连接</h2>
+        <button onclick="testModelsAPI()">测试模型列表 API</button>
+        <div id="api-status"></div>
+        <pre id="models-list"></pre>
+    </div>
+    
+    <div class="section">
+        <h2>3. 测试发送消息</h2>
+        <select id="test-model-a">
+            <option value="">加载中...</option>
+        </select>
+        <select id="test-model-b">
+            <option value="">加载中...</option>
+        </select>
+        <textarea id="test-message" rows="3" placeholder="输入测试消息...">你好，请介绍一下你自己</textarea>
+        <button onclick="testSendMessage()">发送测试消息</button>
+        <div id="send-status"></div>
+        <pre id="response-display"></pre>
+    </div>
+    
+    <div class="section">
+        <h2>4. JavaScript 错误日志</h2>
+        <button onclick="clearLog()">清空日志</button>
+        <pre id="error-log">等待错误...</pre>
+    </div>
+    
+    <script>
+        let models = [];
+        let errorLog = [];
+        
+        // 捕获所有错误
+        window.onerror = function(msg, url, line, col, error) {
+            const errorMsg = `[${new Date().toLocaleTimeString()}] ${msg} (${url}:${line}:${col})`;
+            errorLog.push(errorMsg);
+            document.getElementById('error-log').textContent = errorLog.join('\n') || '没有错误';
+            return false;
+        };
+        
+        // 检查元素是否存在
+        function checkElements() {
+            const elements = [
+                'battle-send-btn',
+                'battle-input',
+                'sidebyside-send-btn',
+                'sidebyside-input',
+                'sidebyside-model-a',
+                'sidebyside-model-b'
+            ];
+            
+            let html = '<ul>';
+            elements.forEach(id => {
+                const el = document.getElementById(id);
+                const exists = el !== null;
+                html += `<li class="status ${exists ? 'success' : 'error'}">
+                    ${id}: ${exists ? '✓ 存在' : '✗ 不存在'}
+                </li>`;
+            });
+            html += '</ul>';
+            
+            document.getElementById('element-status').innerHTML = html;
+        }
+        
+        // 测试模型列表 API
+        async function testModelsAPI() {
+            const statusDiv = document.getElementById('api-status');
+            const listDiv = document.getElementById('models-list');
+            
+            try {
+                statusDiv.innerHTML = '<div class="status info">正在请求...</div>';
+                
+                const response = await fetch('/api/chat/models');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                models = data.models;
+                
+                statusDiv.innerHTML = `<div class="status success">✓ 成功！找到 ${models.length} 个模型</div>`;
+                listDiv.textContent = JSON.stringify(data, null, 2);
+                
+                // 填充选择器
+                const selectA = document.getElementById('test-model-a');
+                const selectB = document.getElementById('test-model-b');
+                
+                selectA.innerHTML = '';
+                selectB.innerHTML = '';
+                
+                models.forEach((model, i) => {
+                    const optA = document.createElement('option');
+                    optA.value = model.id;
+                    optA.textContent = model.name;
+                    selectA.appendChild(optA);
+                    
+                    const optB = document.createElement('option');
+                    optB.value = model.id;
+                    optB.textContent = model.name;
+                    selectB.appendChild(optB);
+                });
+                
+                if (models.length > 1) {
+                    selectB.selectedIndex = 1;
+                }
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">✗ 失败: ${error.message}</div>`;
+                listDiv.textContent = error.stack || error.toString();
+            }
+        }
+        
+        // 测试发送消息
+        async function testSendMessage() {
+            const modelA = document.getElementById('test-model-a').value;
+            const modelB = document.getElementById('test-model-b').value;
+            const message = document.getElementById('test-message').value.trim();
+            const statusDiv = document.getElementById('send-status');
+            const responseDiv = document.getElementById('response-display');
+            
+            if (!modelA || !modelB || !message) {
+                statusDiv.innerHTML = '<div class="status error">请选择模型并输入消息</div>';
+                return;
+            }
+            
+            try {
+                statusDiv.innerHTML = '<div class="status info">正在发送...</div>';
+                responseDiv.textContent = '等待响应...';
+                
+                const response = await fetch('/api/chat/sidebyside', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model_a_id: modelA,
+                        model_b_id: modelB,
+                        message: message,
+                        session_id: null
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                
+                const data = await response.json();
+                
+                statusDiv.innerHTML = '<div class="status success">✓ 发送成功！</div>';
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">✗ 失败: ${error.message}</div>`;
+                responseDiv.textContent = error.stack || error.toString();
+            }
+        }
+        
+        function clearLog() {
+            errorLog = [];
+            document.getElementById('error-log').textContent = '没有错误';
+        }
+        
+        // 页面加载时自动测试
+        window.addEventListener('DOMContentLoaded', () => {
+            testModelsAPI();
+        });
+    </script>
+</body>
+</html>
+
+

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LMArena - AI 模型对战评测平台</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="page">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-icon">🤖</div>
+                <div>
+                    <div class="brand-title">LMArena</div>
+                    <div class="brand-subtitle">匿名对战 · 公正评测 · 公开榜单</div>
+                </div>
+            </div>
+            <div class="top-actions">
+                <span class="pill">Battle</span>
+                <span class="pill">Side-by-Side</span>
+                <span class="pill ghost">Leaderboard</span>
+            </div>
+        </header>
+
+        <main class="container">
+            <section class="hero">
+                <div>
+                    <h1>体验、投票、上榜</h1>
+                    <p>匿名对战与并排对比，让模型表现更接近日常真实使用。</p>
+                </div>
+                <div class="mode-selector">
+                    <button class="mode-btn active" data-mode="battle">⚔️ 匿名对战</button>
+                    <button class="mode-btn" data-mode="sidebyside">📊 并排对比</button>
+                    <button class="mode-btn" data-mode="leaderboard">🏆 排行榜</button>
+                </div>
+            </section>
+
+            <!-- 匿名对战模式 -->
+            <section id="battle-mode" class="mode-content active panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>匿名对战模式</h2>
+                        <p>系统随机两模型匿名回答，你投票决定更优，投后揭晓身份并记入榜单。</p>
+                    </div>
+                    <div id="battle-start">
+                        <button id="start-battle-btn" class="primary-btn">开始对战</button>
+                    </div>
+                </div>
+
+                <div id="battle-chat" class="chat-section" style="display: none;">
+                    <div class="responses-grid">
+                        <div class="response-box">
+                            <div class="response-header">模型 A</div>
+                            <div id="response-a" class="response-content">
+                                <div class="empty-state">等待回复...</div>
+                            </div>
+                        </div>
+                        <div class="response-box">
+                            <div class="response-header">模型 B</div>
+                            <div id="response-b" class="response-content">
+                                <div class="empty-state">等待回复...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="voting-section" class="voting-section" style="display: none;">
+                        <h3>选择更好的回答：</h3>
+                        <div class="vote-buttons">
+                            <button class="vote-btn" data-winner="model_a">👈 模型 A 更好</button>
+                            <button class="vote-btn" data-winner="tie">🤝 两者相当</button>
+                            <button class="vote-btn" data-winner="model_b">👉 模型 B 更好</button>
+                        </div>
+                    </div>
+
+                    <div id="reveal-section" class="reveal-section" style="display: none;">
+                        <div class="reveal-info">
+                            <h3>✨ 模型揭晓</h3>
+                            <div class="reveal-grid">
+                                <div class="reveal-item">
+                                    <span class="reveal-label">模型 A:</span>
+                                    <span id="reveal-model-a" class="reveal-value"></span>
+                                </div>
+                                <div class="reveal-item">
+                                    <span class="reveal-label">模型 B:</span>
+                                    <span id="reveal-model-b" class="reveal-value"></span>
+                                </div>
+                            </div>
+                            <button id="new-battle-btn" class="primary-btn ghost">开始新对战</button>
+                        </div>
+                    </div>
+
+                    <div class="input-section">
+                        <textarea id="battle-input" placeholder="输入你的问题..." rows="3"></textarea>
+                        <button id="battle-send-btn" class="send-btn">发送</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 并排对比模式 -->
+            <section id="sidebyside-mode" class="mode-content panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>并排对比模式</h2>
+                        <p>选择两个模型并排作答，为更好的答案投票，数据同样计入排行榜。</p>
+                    </div>
+                </div>
+
+                <div class="panel-body">
+                    <div class="model-selection">
+                        <div class="model-select-group">
+                            <label>模型 A:</label>
+                            <select id="sidebyside-model-a" class="model-select"></select>
+                        </div>
+                        <div class="model-select-group">
+                            <label>模型 B:</label>
+                            <select id="sidebyside-model-b" class="model-select"></select>
+                        </div>
+                    </div>
+
+                    <div class="responses-grid">
+                        <div class="response-box">
+                            <div class="response-header" id="sidebyside-header-a">模型 A</div>
+                            <div id="sidebyside-response-a" class="response-content">
+                                <div class="empty-state">等待回复...</div>
+                            </div>
+                        </div>
+                        <div class="response-box">
+                            <div class="response-header" id="sidebyside-header-b">模型 B</div>
+                            <div id="sidebyside-response-b" class="response-content">
+                                <div class="empty-state">等待回复...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="sidebyside-voting" class="voting-section" style="display: none;">
+                        <h3>选择更好的回答：</h3>
+                        <div class="vote-buttons">
+                            <button class="vote-btn" data-winner="model_a">👈 模型 A 更好</button>
+                            <button class="vote-btn" data-winner="tie">🤝 两者相当</button>
+                            <button class="vote-btn" data-winner="model_b">👉 模型 B 更好</button>
+                        </div>
+                    </div>
+
+                    <div class="input-section">
+                        <textarea id="sidebyside-input" placeholder="输入你的问题..." rows="3"></textarea>
+                        <button id="sidebyside-send-btn" class="send-btn">发送</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 排行榜模式 -->
+            <section id="leaderboard-mode" class="mode-content panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>模型排行榜</h2>
+                        <p>基于匿名对战与对比投票的 ELO 评分，实时公开透明。</p>
+                    </div>
+                    <button id="refresh-leaderboard-btn" class="secondary-btn">🔄 刷新排行榜</button>
+                </div>
+                <div class="panel-body">
+                    <div id="leaderboard-content" class="leaderboard-table">
+                        <div class="loading">加载中...</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>© 2024 LMArena · 公平 · 透明 · 开源</p>
+            <p>匿名对战 · 人类偏好投票 · ELO 排行榜</p>
+        </footer>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
+

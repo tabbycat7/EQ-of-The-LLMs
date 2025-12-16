@@ -1,0 +1,365 @@
+# 云平台部署指南
+
+本指南将帮助你将 LMArena 部署到云平台，让其他人可以访问。
+
+## 🚀 推荐平台
+
+### 1. **Render** (推荐) ⭐
+- ✅ 免费套餐可用
+- ✅ 支持 Python/MySQL
+- ✅ 自动 HTTPS
+- ✅ 简单易用
+
+### 2. **Railway**
+- ✅ 免费额度
+- ✅ 支持数据库
+- ✅ 自动部署
+
+### 3. **Fly.io**
+- ✅ 全球边缘部署
+- ✅ 免费套餐
+- ✅ 性能优秀
+
+### 4. **Heroku**
+- ⚠️ 已取消免费套餐，需付费
+
+---
+
+## 📋 部署前准备
+
+### 1. 确保代码已推送到 GitHub
+
+```bash
+git add .
+git commit -m "准备部署"
+git push
+```
+
+### 2. 准备环境变量
+
+你需要准备以下环境变量：
+- `OPENAI_API_KEY`
+- `OPENAI_BASE_URL`
+- `DEEPSEEK_API_KEY` (可选)
+- `DEEPSEEK_BASE_URL` (可选)
+- `DATABASE_URL` (云数据库连接字符串)
+
+---
+
+## 🌐 方案一：Render 部署（推荐）
+
+### 步骤 1: 创建 Render 账户
+
+1. 访问 https://render.com
+2. 使用 GitHub 账户登录
+
+### 步骤 2: 创建 Web Service
+
+1. 点击 "New +" > "Web Service"
+2. 选择你的 GitHub 仓库
+3. 配置如下：
+
+**基本信息：**
+- **Name**: `lmarena` (或你喜欢的名字)
+- **Region**: 选择离你最近的区域
+- **Branch**: `main`
+- **Root Directory**: 留空（如果是根目录）
+
+**构建和启动：**
+- **Build Command**: 
+  ```bash
+  pip install -r requirements.txt
+  ```
+- **Start Command**: 
+  ```bash
+  uvicorn main:app --host 0.0.0.0 --port $PORT
+  ```
+
+### 步骤 3: 配置环境变量
+
+在 "Environment" 标签页添加：
+
+```
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_BASE_URL=https://api.openai.com/v1
+DEEPSEEK_API_KEY=your_deepseek_api_key
+DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
+DATABASE_URL=mysql+asyncmy://user:password@host:3306/dbname
+```
+
+### 步骤 4: 创建 MySQL 数据库
+
+1. 在 Render 控制台，点击 "New +" > "PostgreSQL" 或使用外部 MySQL
+2. 如果使用 Render PostgreSQL，需要修改连接字符串
+3. 或者使用外部 MySQL 服务（如 PlanetScale、Aiven）
+
+### 步骤 5: 部署
+
+点击 "Create Web Service"，Render 会自动：
+- 克隆代码
+- 安装依赖
+- 启动服务
+- 分配 HTTPS URL
+
+### 步骤 6: 访问
+
+部署完成后，你会得到一个类似 `https://lmarena.onrender.com` 的 URL。
+
+---
+
+## 🚂 方案二：Railway 部署
+
+### 步骤 1: 创建 Railway 账户
+
+1. 访问 https://railway.app
+2. 使用 GitHub 登录
+
+### 步骤 2: 创建新项目
+
+1. 点击 "New Project"
+2. 选择 "Deploy from GitHub repo"
+3. 选择你的仓库
+
+### 步骤 3: 添加数据库
+
+1. 点击 "+ New"
+2. 选择 "Database" > "MySQL"
+3. Railway 会自动创建数据库并设置 `DATABASE_URL`
+
+### 步骤 4: 配置环境变量
+
+在项目设置中添加：
+- `OPENAI_API_KEY`
+- `OPENAI_BASE_URL`
+- `DEEPSEEK_API_KEY`
+- `DEEPSEEK_BASE_URL`
+
+`DATABASE_URL` 会自动设置（如果使用 Railway MySQL）
+
+### 步骤 5: 配置启动命令
+
+在项目设置中，设置启动命令：
+```bash
+uvicorn main:app --host 0.0.0.0 --port $PORT
+```
+
+Railway 会自动检测 Python 并安装依赖。
+
+---
+
+## ✈️ 方案三：Fly.io 部署
+
+### 步骤 1: 安装 Fly CLI
+
+```bash
+# macOS
+brew install flyctl
+
+# Windows (PowerShell)
+iwr https://fly.io/install.ps1 -useb | iex
+
+# Linux
+curl -L https://fly.io/install.sh | sh
+```
+
+### 步骤 2: 登录 Fly.io
+
+```bash
+fly auth login
+```
+
+### 步骤 3: 创建应用
+
+在项目目录下：
+
+```bash
+fly launch
+```
+
+按提示操作，选择：
+- App name: `lmarena` (或你喜欢的名字)
+- Region: 选择最近的区域
+- PostgreSQL: 选择 "Yes"（或使用外部 MySQL）
+
+### 步骤 4: 配置环境变量
+
+```bash
+fly secrets set OPENAI_API_KEY=your_key
+fly secrets set OPENAI_BASE_URL=https://api.openai.com/v1
+fly secrets set DEEPSEEK_API_KEY=your_key
+fly secrets set DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
+```
+
+### 步骤 5: 部署
+
+```bash
+fly deploy
+```
+
+### 步骤 6: 访问
+
+```bash
+fly open
+```
+
+---
+
+## 🔧 部署前代码调整
+
+### 1. 修改 `main.py` 或 `run.py` 以支持云平台
+
+确保启动命令使用环境变量中的端口：
+
+```python
+# main.py 或 run.py
+import os
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=port,
+        reload=False  # 生产环境关闭 reload
+    )
+```
+
+### 2. 创建 `Procfile` (可选，用于某些平台)
+
+在项目根目录创建 `Procfile`：
+
+```
+web: uvicorn main:app --host 0.0.0.0 --port $PORT
+```
+
+### 3. 创建 `runtime.txt` (可选)
+
+如果需要指定 Python 版本：
+
+```
+python-3.11
+```
+
+---
+
+## 🗄️ 数据库选项
+
+### 选项 1: 使用云 MySQL 服务
+
+**PlanetScale** (推荐，免费套餐):
+1. 访问 https://planetscale.com
+2. 创建数据库
+3. 获取连接字符串
+4. 格式：`mysql+asyncmy://user:password@host:3306/dbname`
+
+**Aiven**:
+1. 访问 https://aiven.io
+2. 创建 MySQL 服务
+3. 获取连接字符串
+
+### 选项 2: 使用 PostgreSQL (需要修改代码)
+
+如果平台只提供 PostgreSQL，需要：
+1. 修改 `requirements.txt`，将 `asyncmy` 改为 `asyncpg`
+2. 修改 `config.py` 中的数据库 URL 格式
+3. 修改 `models/database.py` 中的连接方式
+
+---
+
+## 📝 部署检查清单
+
+- [ ] 代码已推送到 GitHub
+- [ ] 环境变量已配置（API keys）
+- [ ] 数据库已创建并配置
+- [ ] `DATABASE_URL` 已设置
+- [ ] 启动命令已配置
+- [ ] 测试部署是否成功
+
+---
+
+## 🐛 常见问题
+
+### 1. 数据库连接失败
+
+- 检查 `DATABASE_URL` 格式是否正确
+- 确保数据库允许外部连接
+- 检查防火墙设置
+
+### 2. 端口错误
+
+- 确保使用 `$PORT` 环境变量
+- 确保 `host="0.0.0.0"`
+
+### 3. 依赖安装失败
+
+- 检查 `requirements.txt` 是否完整
+- 某些平台可能需要 `python-version` 文件
+
+### 4. 静态文件无法加载
+
+- 确保 FastAPI 正确配置了静态文件路径
+- 检查 `main.py` 中的 `StaticFiles` 配置
+
+---
+
+## 🔒 安全建议
+
+1. **不要提交 `.env` 文件**（已在 `.gitignore` 中）
+2. **使用环境变量**存储敏感信息
+3. **启用 HTTPS**（大多数平台自动提供）
+4. **定期更新依赖**：
+   ```bash
+   pip list --outdated
+   pip install --upgrade package_name
+   ```
+
+---
+
+## 📊 监控和维护
+
+### 查看日志
+
+- **Render**: Dashboard > Logs
+- **Railway**: Project > Deployments > View Logs
+- **Fly.io**: `fly logs`
+
+### 更新部署
+
+```bash
+git add .
+git commit -m "更新功能"
+git push
+```
+
+大多数平台会自动重新部署。
+
+---
+
+## 💰 成本估算
+
+### 免费套餐限制
+
+- **Render**: 免费套餐在 15 分钟无活动后会休眠
+- **Railway**: $5 免费额度/月
+- **Fly.io**: 3 个共享 CPU，160MB RAM
+
+### 付费建议
+
+如果需要 24/7 运行，考虑：
+- **Render**: $7/月起
+- **Railway**: 按使用量付费
+- **Fly.io**: 按使用量付费
+
+---
+
+## 🎉 完成！
+
+部署完成后，你的应用就可以通过公网访问了！
+
+**下一步：**
+1. 测试所有功能
+2. 分享 URL 给其他人
+3. 监控使用情况
+4. 根据反馈优化
+

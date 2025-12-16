@@ -1,0 +1,195 @@
+LLMEQ/ (LMArena - AI 模型对战评测平台)
+│
+├── 📄 main.py                      # FastAPI 应用主入口
+├── 📄 config.py                    # 配置文件（模型列表、ELO参数等）
+├── 📄 requirements.txt             # Python 依赖列表
+├── 📄 .env                         # 环境变量配置（API Key等）
+├── 📄 .env.example                 # 环境变量示例
+├── 📄 .gitignore                   # Git 忽略文件
+│
+├── 📄 README.md                    # 项目说明文档
+├── 📄 START.md                     # 快速启动指南
+├── 📄 使用指南.md                  # 详细使用指南
+├── 📄 test_api.py                  # API 测试脚本
+├── 📄 项目结构.txt                 # 本文件
+│
+├── 📁 models/                      # 数据库模型层
+│   ├── __init__.py
+│   ├── database.py                 # 数据库连接和会话管理
+│   └── schemas.py                  # 数据表结构定义
+│       ├── Battle                  # 对战会话表
+│       ├── Vote                    # 投票记录表
+│       ├── ModelRating             # 模型评分表
+│       └── ChatSession             # 聊天会话表
+│
+├── 📁 services/                    # 业务逻辑服务层
+│   ├── __init__.py
+│   ├── model_service.py            # AI 模型调用服务
+│   │   ├── get_completion()        # 单模型调用
+│   │   ├── get_dual_completion()   # 双模型并行调用
+│   │   ├── stream_completion()     # 流式调用
+│   │   └── get_available_models()  # 获取可用模型
+│   │
+│   └── rating_service.py           # ELO 评分系统服务
+│       ├── calculate_expected_score()  # 计算期望得分
+│       ├── calculate_new_ratings()     # 计算新评分
+│       ├── update_ratings()            # 更新数据库评分
+│       └── get_leaderboard()           # 获取排行榜
+│
+├── 📁 api/                         # API 路由层
+│   ├── __init__.py
+│   │
+│   ├── battle.py                   # 对战模式 API
+│   │   ├── POST /api/battle/start          # 开始对战
+│   │   ├── POST /api/battle/chat           # 发送消息
+│   │   ├── POST /api/battle/vote           # 提交投票
+│   │   └── GET  /api/battle/reveal/{id}    # 揭示模型
+│   │
+│   ├── chat.py                     # 聊天模式 API
+│   │   ├── GET  /api/chat/models           # 获取模型列表
+│   │   ├── POST /api/chat/direct           # 直接对话
+│   │   └── POST /api/chat/sidebyside       # 并排对比
+│   │
+│   └── leaderboard.py              # 排行榜 API
+│       └── GET  /api/leaderboard           # 获取排行榜
+│
+├── 📁 templates/                   # HTML 模板
+│   └── index.html                  # 主页面模板
+│       ├── 匿名对战模式界面
+│       ├── 并排对比模式界面
+│       ├── 直接对话模式界面
+│       └── 排行榜界面
+│
+└── 📁 static/                      # 静态资源
+    ├── 📁 css/
+    │   └── style.css               # 样式文件
+    │       ├── 全局样式
+    │       ├── 头部和导航
+    │       ├── 模式切换器
+    │       ├── 聊天界面
+    │       ├── 投票和揭示区域
+    │       ├── 排行榜样式
+    │       └── 响应式设计
+    │
+    └── 📁 js/
+        └── app.js                  # 前端 JavaScript
+            ├── 模式切换逻辑
+            ├── 对战模式交互
+            ├── 并排对比交互
+            ├── 直接对话交互
+            └── 排行榜加载
+
+═══════════════════════════════════════════════════════════
+
+📊 数据库表结构
+
+battles (对战会话表)
+├── id                  # 主键 (UUID)
+├── model_a_id          # 模型 A 的 ID
+├── model_b_id          # 模型 B 的 ID
+├── conversation        # 对话历史 (JSON)
+├── model_a_response    # 模型 A 的回复
+├── model_b_response    # 模型 B 的回复
+├── winner              # 获胜者
+├── is_revealed         # 是否已揭示
+├── created_at          # 创建时间
+└── updated_at          # 更新时间
+
+votes (投票记录表)
+├── id                  # 主键 (UUID)
+├── battle_id           # 关联的对战 ID
+├── winner              # 获胜者
+├── model_a_id          # 模型 A 的 ID
+├── model_b_id          # 模型 B 的 ID
+├── user_prompt         # 用户的提问
+└── created_at          # 创建时间
+
+model_ratings (模型评分表)
+├── id                  # 主键 (自增)
+├── model_id            # 模型 ID (唯一)
+├── model_name          # 模型名称
+├── rating              # ELO 评分
+├── total_battles       # 总对战次数
+├── wins                # 胜利次数
+├── losses              # 失败次数
+├── ties                # 平局次数
+└── updated_at          # 更新时间
+
+chat_sessions (聊天会话表)
+├── id                  # 主键 (UUID)
+├── mode                # 模式 (direct/sidebyside)
+├── model_ids           # 使用的模型 ID (JSON)
+├── conversation        # 对话历史 (JSON)
+├── created_at          # 创建时间
+└── updated_at          # 更新时间
+
+═══════════════════════════════════════════════════════════
+
+🔄 应用流程
+
+1️⃣ 匿名对战流程:
+   用户 → 点击开始 → 创建 Battle 会话
+        → 发送问题 → 双模型并行回答
+        → 查看回答 → 投票
+        → 更新 ELO 评分 → 记录 Vote
+        → 揭示模型身份 → 更新排行榜
+
+2️⃣ 并排对比流程:
+   用户 → 选择两个模型 → 创建 ChatSession
+        → 发送问题 → 双模型并行回答
+        → 查看对比结果 → 继续对话
+
+3️⃣ 直接对话流程:
+   用户 → 选择一个模型 → 创建 ChatSession
+        → 发送消息 → 模型回复
+        → 多轮对话
+
+4️⃣ 排行榜更新流程:
+   投票提交 → 计算 ELO 变化 → 更新 ModelRating
+           → 刷新排行榜 → 按评分排序显示
+
+═══════════════════════════════════════════════════════════
+
+🎯 核心技术特点
+
+✅ 异步架构: FastAPI + AsyncIO + aiosqlite
+✅ 并行调用: asyncio.gather 同时调用多个模型
+✅ ELO 算法: 标准 ELO 评分系统
+✅ RESTful API: 清晰的 API 设计
+✅ 现代 UI: 渐变色、卡片式设计、响应式布局
+✅ 数据持久化: SQLite (可迁移到 PostgreSQL)
+✅ 模块化设计: 清晰的分层架构
+
+═══════════════════════════════════════════════════════════
+
+📦 依赖说明
+
+核心依赖:
+- fastapi: Web 框架
+- uvicorn: ASGI 服务器
+- sqlalchemy: ORM 框架
+- aiosqlite: 异步 SQLite 驱动
+- openai: OpenAI Python SDK
+- pydantic: 数据验证
+
+辅助依赖:
+- python-dotenv: 环境变量管理
+- jinja2: 模板引擎
+- python-multipart: 文件上传支持
+- aiofiles: 异步文件操作
+
+═══════════════════════════════════════════════════════════
+
+🚀 扩展建议
+
+1. 添加用户认证系统
+2. 支持更多 AI 提供商 (Anthropic, Google, etc.)
+3. 添加流式响应显示
+4. 实现对话历史管理
+5. 添加数据导出功能
+6. 支持自定义评分算法
+7. 添加模型成本统计
+8. 实现 A/B 测试功能
+
+═══════════════════════════════════════════════════════════
+
