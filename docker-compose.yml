@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: lmarena-web
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com/v1}
+      - DATABASE_URL=${DATABASE_URL:-sqlite+aiosqlite:///./lmarena.db}
+      - ENV=production
+    volumes:
+      # 如果需要持久化数据库（SQLite）
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # 可选：如果需要 MySQL 数据库
+  # mysql:
+  #   image: mysql:8.0
+  #   container_name: lmarena-mysql
+  #   environment:
+  #     - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpassword}
+  #     - MYSQL_DATABASE=${MYSQL_DATABASE:-lmarena}
+  #     - MYSQL_USER=${MYSQL_USER:-lmarena}
+  #     - MYSQL_PASSWORD=${MYSQL_PASSWORD:-lmarenapassword}
+  #   volumes:
+  #     - mysql_data:/var/lib/mysql
+  #   ports:
+  #     - "3306:3306"
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+# volumes:
+#   mysql_data:
+
