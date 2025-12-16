@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lmarena
+  labels:
+    app: lmarena
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lmarena
+  template:
+    metadata:
+      labels:
+        app: lmarena
+    spec:
+      containers:
+      - name: lmarena
+        image: lmarena:latest  # 替换为你的镜像地址
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+        env:
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: lmarena-secrets
+              key: openai-api-key
+        - name: OPENAI_BASE_URL
+          value: "https://api.openai.com/v1"
+        - name: DEEPSEEK_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: lmarena-secrets
+              key: deepseek-api-key
+              optional: true
+        - name: DEEPSEEK_BASE_URL
+          value: "https://api.deepseek.com/v1"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: lmarena-secrets
+              key: database-url
+        - name: PORT
+          value: "8000"
+        - name: HOST
+          value: "0.0.0.0"
+        - name: ENV
+          value: "production"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000  # 使用正确的端口
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000  # 使用正确的端口
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lmarena-service
+  labels:
+    app: lmarena
+spec:
+  type: ClusterIP  # 或 LoadBalancer，根据你的需求
+  ports:
+  - port: 80
+    targetPort: 8000  # 将外部端口 80 映射到容器端口 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: lmarena
+

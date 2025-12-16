@@ -18,11 +18,12 @@ services:
       - ./data:/app/data
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+
   # 可选：如果需要 MySQL 数据库
   # mysql:
   #   image: mysql:8.0
@@ -43,6 +44,6 @@ services:
   #     timeout: 5s
   #     retries: 5
 
-  # volumes:
-  #   mysql_data:
+# volumes:
+#   mysql_data:
 
