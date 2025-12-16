@@ -6,9 +6,9 @@ from pydantic import BaseModel, ConfigDict
 from typing import List, Dict, Optional
 
 from models.database import get_db
-from models.schemas import ChatSession, ModelRating
+from models.schemas import ChatSession
 from services.model_service import ModelService
-import config
+from services.rating_service import RatingService
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 model_service = ModelService()
@@ -151,7 +151,7 @@ async def side_by_side_vote(
 ):
     """
     并排对比模式下的投票
-    仅收集用户偏好，不计入评分（不更新 ELO）
+    直接根据用户选择更新 ELO 评分
     """
     if request.winner not in ["model_a", "model_b", "tie"]:
         raise HTTPException(status_code=400, detail="无效的投票选项")
@@ -165,22 +165,18 @@ async def side_by_side_vote(
     if not model_b_info:
         raise HTTPException(status_code=404, detail=f"模型 {request.model_b_id} 不存在")
 
-    # Side-by-Side 不计入评分：读取当前评分（用于展示，不做更新）
-    result_a = await db.execute(
-        select(ModelRating).where(ModelRating.model_id == request.model_a_id)
+    # 更新评分
+    new_rating_a, new_rating_b = await RatingService.update_ratings(
+        db,
+        request.model_a_id,
+        request.model_b_id,
+        request.winner,
+        source="sidebyside",
     )
-    result_b = await db.execute(
-        select(ModelRating).where(ModelRating.model_id == request.model_b_id)
-    )
-    model_a_rating = result_a.scalar_one_or_none()
-    model_b_rating = result_b.scalar_one_or_none()
-
-    new_rating_a = float(model_a_rating.rating) if model_a_rating else float(config.INITIAL_RATING)
-    new_rating_b = float(model_b_rating.rating) if model_b_rating else float(config.INITIAL_RATING)
 
     return SideBySideVoteResponse(
         success=True,
-        message="投票成功！感谢你的反馈。（Side-by-Side 不计入评分）",
+        message="投票成功！感谢你的反馈。",
         model_a_id=request.model_a_id,
         model_a_name=model_a_info["name"],
         model_b_id=request.model_b_id,

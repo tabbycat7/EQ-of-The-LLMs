@@ -1,4 +1,5 @@
-"""评分系统服务（积分制：胜+2，平+1，负+0）"""
+"""ELO 评分系统服务"""
+import math
 from typing import Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
@@ -7,26 +8,81 @@ import config
 
 
 class RatingService:
-    """评分系统服务（积分制）"""
+    """ELO 评分系统服务"""
 
+    @staticmethod
+    def _effective_k_factor(
+        base_k: float,
+        total_battles_a: int,
+        total_battles_b: int,
+        k_scale_floor: float = None,
+    ) -> float:
+        """
+        计算“有效 K 因子”：随着对战次数增多，K 自动衰减，避免分数剧烈波动。
+        采用：scale = 1 / sqrt(1 + avg_battles/10)，并设置下限。
+        """
+        if k_scale_floor is None:
+            k_scale_floor = getattr(config, "ELO_K_SCALE_FLOOR", 0.25)
+
+        avg_battles = ((total_battles_a or 0) + (total_battles_b or 0)) / 2.0
+        scale = 1.0 / math.sqrt(1.0 + (avg_battles / 10.0))
+        scale = max(k_scale_floor, scale)
+        return base_k * scale
+    
+    @staticmethod
+    def calculate_expected_score(rating_a: float, rating_b: float) -> Tuple[float, float]:
+        """
+        计算期望得分
+        
+        Args:
+            rating_a: 模型 A 的当前评分
+            rating_b: 模型 B 的当前评分
+            
+        Returns:
+            (模型 A 的期望得分, 模型 B 的期望得分)
+        """
+        expected_a = 1 / (1 + math.pow(10, (rating_b - rating_a) / 400))
+        expected_b = 1 / (1 + math.pow(10, (rating_a - rating_b) / 400))
+        return expected_a, expected_b
+    
     @staticmethod
     def calculate_new_ratings(
         rating_a: float,
         rating_b: float,
         result: str,
+        k_factor: float = None
     ) -> Tuple[float, float]:
         """
-        积分制：
-        - A 胜：A +2，B +0
-        - B 胜：A +0，B +2
-        - 平局：A +1，B +1
+        根据对战结果计算新的评分
+        
+        Args:
+            rating_a: 模型 A 的当前评分
+            rating_b: 模型 B 的当前评分
+            result: 对战结果 "model_a"(A 胜), "model_b"(B 胜), "tie"(平局)
+            k_factor: K 因子（可选，默认使用配置值）
+            
+        Returns:
+            (模型 A 的新评分, 模型 B 的新评分)
         """
+        if k_factor is None:
+            k_factor = config.ELO_K_FACTOR
+        
+        # 计算期望得分
+        expected_a, expected_b = RatingService.calculate_expected_score(rating_a, rating_b)
+        
+        # 确定实际得分
         if result == "model_a":
-            return rating_a + config.WIN_POINTS, rating_b + config.LOSS_POINTS
-        if result == "model_b":
-            return rating_a + config.LOSS_POINTS, rating_b + config.WIN_POINTS
-        # tie
-        return rating_a + config.TIE_POINTS, rating_b + config.TIE_POINTS
+            actual_a, actual_b = 1.0, 0.0
+        elif result == "model_b":
+            actual_a, actual_b = 0.0, 1.0
+        else:  # tie
+            actual_a, actual_b = 0.5, 0.5
+        
+        # 计算新评分
+        new_rating_a = rating_a + k_factor * (actual_a - expected_a)
+        new_rating_b = rating_b + k_factor * (actual_b - expected_b)
+        
+        return new_rating_a, new_rating_b
     
     @staticmethod
     async def update_ratings(
@@ -34,7 +90,7 @@ class RatingService:
         model_a_id: str,
         model_b_id: str,
         winner: str,
-        source: str = "battle",  # 目前仅 battle 会调用；side-by-side 已不计入评分
+        source: str = "battle",  # "battle" | "sidebyside"
     ) -> Tuple[float, float]:
         """
         更新两个模型的评分
@@ -87,11 +143,25 @@ class RatingService:
         # 如果刚创建了新记录，需要先 flush 确保它们有 ID
         await db.flush()
         
-        # 计算新评分（积分制）
+        # 选择不同模式的基础 K（Side-by-Side 权重更低）
+        if source == "sidebyside":
+            base_k = getattr(config, "ELO_K_FACTOR_SIDEBYSIDE", config.ELO_K_FACTOR)
+        else:
+            base_k = getattr(config, "ELO_K_FACTOR_BATTLE", config.ELO_K_FACTOR)
+
+        # 根据双方历史对战数，计算有效 K（自动衰减、更稳定）
+        effective_k = RatingService._effective_k_factor(
+            base_k=base_k,
+            total_battles_a=(model_a_rating.total_battles or 0),
+            total_battles_b=(model_b_rating.total_battles or 0),
+        )
+
+        # 计算新评分
         new_rating_a, new_rating_b = RatingService.calculate_new_ratings(
             model_a_rating.rating,
             model_b_rating.rating,
             winner,
+            k_factor=effective_k,
         )
         
         # 更新模型 A 的评分和统计
@@ -161,7 +231,7 @@ class RatingService:
                 "rank": rank,
                 "model_id": model.model_id,
                 "model_name": model.model_name,
-                "rating": int(model.rating),
+                "rating": round(model.rating, 1),
                 "total_battles": model.total_battles,
                 "wins": model.wins,
                 "losses": model.losses,

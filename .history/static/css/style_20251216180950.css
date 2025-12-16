@@ -996,12 +996,9 @@ body {
 
 .vote-buttons {
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 10px;
     flex-wrap: wrap;
-    /* 让整个投票按钮区域在父容器中居中 */
-    width: fit-content;
-    margin: 0 auto;
 }
 
 .vote-btn {
@@ -1031,9 +1028,7 @@ body {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
-    /* 让包含“模型 A / 模型 B”两个卡片的容器在父容器中居中 */
-    margin: 10px auto 12px;
-    justify-content: center;
+    margin: 10px 0 12px;
 }
 
 .reveal-item {
@@ -1041,8 +1036,6 @@ body {
     border: 1px solid var(--cg-border);
     border-radius: 12px;
     padding: 12px;
-    /* 让揭晓卡片内容居中显示 */
-    text-align: center;
 }
 
 .reveal-label {

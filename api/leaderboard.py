@@ -23,7 +23,7 @@ async def get_leaderboard(
 ):
     """
     获取模型排行榜
-    基于 ELO 评分排序
+    基于积分制评分排序
     """
     leaderboard = await RatingService.get_leaderboard(db, limit=limit)
     

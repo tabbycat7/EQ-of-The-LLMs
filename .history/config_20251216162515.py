@@ -105,14 +105,16 @@ AVAILABLE_MODELS = [
     }
 ]
 
-# 评分系统参数（积分制）
-# - 胜：+2
-# - 平：+1
-# - 负：+0
-WIN_POINTS = 2
-TIE_POINTS = 1
-LOSS_POINTS = 0
+# ELO 评分系统参数
+ELO_K_FACTOR = 32  # ELO K 因子，控制评分变化幅度
+INITIAL_RATING = 0  # 初始 ELO 评分
 
-# 初始分数
-INITIAL_RATING = 0
+# 评分改良参数（更稳定、区分模式权重）
+# - Battle：用户不选模型、匿名对战，数据更“客观”，权重更高
+# - Side-by-Side：用户手动挑模型，存在选择偏差，权重更低
+ELO_K_FACTOR_BATTLE = 32
+ELO_K_FACTOR_SIDEBYSIDE = 16
+
+# K 因子衰减下限（0.25 表示最多衰减到原来的 25%，避免完全不动）
+ELO_K_SCALE_FLOOR = 0.25
 

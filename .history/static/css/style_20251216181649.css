@@ -999,9 +999,6 @@ body {
     justify-content: center;
     gap: 10px;
     flex-wrap: wrap;
-    /* 让整个投票按钮区域在父容器中居中 */
-    width: fit-content;
-    margin: 0 auto;
 }
 
 .vote-btn {

@@ -151,7 +151,7 @@ async def submit_vote(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    提交投票并更新积分制评分
+    提交投票并更新 ELO 评分
     投票后揭示模型身份
     """
     # 获取对战会话
@@ -190,7 +190,7 @@ async def submit_vote(
     )
     db.add(vote)
     
-    # 更新评分（积分制）
+    # 更新 ELO 评分
     new_rating_a, new_rating_b = await RatingService.update_ratings(
         db,
         battle.model_a_id,

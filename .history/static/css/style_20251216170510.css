@@ -22,8 +22,6 @@ body {
     background: radial-gradient(circle at 15% 20%, #f5f7ff 0%, #f8f9fb 40%, #f7f8fb 70%, #f7f8fb 100%);
     min-height: 100vh;
     color: var(--text);
-    font-size: 16px;
-    /* 全局基础字号进一步放大，默认正文约等于浏览器标准大小 */
 }
 
 .page {
@@ -694,7 +692,6 @@ body {
 .nav-btn.active {
     background: rgba(16, 163, 127, 0.12);
     border-color: rgba(16, 163, 127, 0.35);
-    color: var(--cg-text);
 }
 
 .nav-btn:active {
@@ -765,7 +762,6 @@ body {
         opacity: 0;
         transform: translateY(8px);
     }
-
     to {
         opacity: 1;
         transform: translateY(0);
@@ -865,7 +861,6 @@ body {
         opacity: 0;
         transform: translateY(6px);
     }
-
     to {
         opacity: 1;
         transform: translateY(0);
@@ -877,8 +872,6 @@ body {
     flex-direction: column;
     gap: 10px;
     margin-top: 4px;
-    /* 与模型回复区域拉开距离，让用户气泡和回复卡片之间更舒适 */
-    margin-bottom: 16px;
 }
 
 .message {
@@ -960,19 +953,14 @@ body {
     height: 10px;
     margin-top: 12px;
     border-radius: 999px;
-    background: linear-gradient(90deg, rgba(0, 0, 0, 0.06) 0%, rgba(0, 0, 0, 0.10) 50%, rgba(0, 0, 0, 0.06) 100%);
+    background: linear-gradient(90deg, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0.10) 50%, rgba(0,0,0,0.06) 100%);
     background-size: 200% 100%;
     animation: cgShimmer 1100ms linear infinite;
 }
 
 @keyframes cgShimmer {
-    from {
-        background-position: 200% 0;
-    }
-
-    to {
-        background-position: -200% 0;
-    }
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
 }
 
 /* 投票 & 揭晓 */
@@ -996,12 +984,9 @@ body {
 
 .vote-buttons {
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 10px;
     flex-wrap: wrap;
-    /* 让整个投票按钮区域在父容器中居中 */
-    width: fit-content;
-    margin: 0 auto;
 }
 
 .vote-btn {
@@ -1031,9 +1016,7 @@ body {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
-    /* 让包含“模型 A / 模型 B”两个卡片的容器在父容器中居中 */
-    margin: 10px auto 12px;
-    justify-content: center;
+    margin: 10px 0 12px;
 }
 
 .reveal-item {
@@ -1041,8 +1024,6 @@ body {
     border: 1px solid var(--cg-border);
     border-radius: 12px;
     padding: 12px;
-    /* 让揭晓卡片内容居中显示 */
-    text-align: center;
 }
 
 .reveal-label {
@@ -1319,6 +1300,10 @@ body {
     .nav-btn {
         justify-content: center;
         flex: 1;
+    }
+
+    .nav-label {
+        display: none;
     }
 
     .main-header {

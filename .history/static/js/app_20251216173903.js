@@ -104,8 +104,7 @@ function setupBattleMode() {
     const sendBtn = document.getElementById('battle-send-btn');
     const input = document.getElementById('battle-input');
     const voteButtons = document.querySelectorAll('.battle-vote-btn');
-    // 统一控制“输入区域（含提示）”的显示/隐藏
-    battleInputSection = document.querySelector('#battle-mode .composer');
+    battleInputSection = document.querySelector('#battle-mode .input-section');
 
     startBtn.addEventListener('click', startBattle);
     newBattleBtn.addEventListener('click', startBattle);
@@ -148,14 +147,7 @@ async function startBattle() {
         document.getElementById('battle-input').value = '';
         document.getElementById('battle-send-btn').disabled = false;
         // 新一轮开始时显示输入区域
-        if (battleInputSection) battleInputSection.style.display = 'block';
-
-        // 清空/隐藏上一条用户提问气泡
-        const userMsg = document.getElementById('battle-user-msg');
-        if (userMsg) {
-            userMsg.textContent = '';
-            userMsg.style.display = 'none';
-        }
+        if (battleInputSection) battleInputSection.style.display = 'flex';
 
     } catch (error) {
         console.error('启动对战失败:', error);
@@ -175,13 +167,6 @@ async function sendBattleMessage() {
     if (battleInputSection) battleInputSection.style.display = 'none';
 
     try {
-        // 显示用户提问气泡（ChatGPT 风格）
-        const userMsg = document.getElementById('battle-user-msg');
-        if (userMsg) {
-            userMsg.textContent = message;
-            userMsg.style.display = 'block';
-        }
-
         // 显示加载状态
         document.getElementById('response-a').innerHTML = '<div class="loading">思考中...</div>';
         document.getElementById('response-b').innerHTML = '<div class="loading">思考中...</div>';
@@ -212,7 +197,7 @@ async function sendBattleMessage() {
         console.error('发送消息失败:', error);
         showError('发送消息失败，请重试');
         sendBtn.disabled = false;
-        if (battleInputSection) battleInputSection.style.display = 'block';
+        if (battleInputSection) battleInputSection.style.display = 'flex';
     }
 }
 
@@ -256,8 +241,7 @@ function setupSideBySideMode() {
     const sendBtn = document.getElementById('sidebyside-send-btn');
     const input = document.getElementById('sidebyside-input');
     const voteButtons = document.querySelectorAll('.sidebyside-vote-btn');
-    // 统一控制“输入区域（含提示）”的显示/隐藏
-    sideBySideInputSection = document.querySelector('#sidebyside-mode .composer');
+    sideBySideInputSection = document.querySelector('#sidebyside-mode .input-section');
     const newRoundBtn = document.getElementById('sidebyside-new-round-btn');
 
     sendBtn.addEventListener('click', sendSideBySideMessage);
@@ -322,13 +306,6 @@ async function sendSideBySideMessage() {
     if (newRound) newRound.style.display = 'none';
 
     try {
-        // 显示用户提问气泡（ChatGPT 风格）
-        const userMsg = document.getElementById('sidebyside-user-msg');
-        if (userMsg) {
-            userMsg.textContent = message;
-            userMsg.style.display = 'block';
-        }
-
         document.getElementById('sidebyside-response-a').innerHTML = '<div class="loading">思考中...</div>';
         document.getElementById('sidebyside-response-b').innerHTML = '<div class="loading">思考中...</div>';
 
@@ -361,7 +338,7 @@ async function sendSideBySideMessage() {
     } catch (error) {
         console.error('发送消息失败:', error);
         showError('发送消息失败，请重试');
-        if (sideBySideInputSection) sideBySideInputSection.style.display = 'block';
+        if (sideBySideInputSection) sideBySideInputSection.style.display = 'flex';
     } finally {
         sendBtn.disabled = false;
     }
@@ -411,16 +388,10 @@ function resetSideBySideRound() {
     if (voting) voting.style.display = 'none';
     const newRound = document.getElementById('sidebyside-new-round');
     if (newRound) newRound.style.display = 'none';
-    if (sideBySideInputSection) sideBySideInputSection.style.display = 'block';
+    if (sideBySideInputSection) sideBySideInputSection.style.display = 'flex';
     const sendBtn = document.getElementById('sidebyside-send-btn');
     if (sendBtn) sendBtn.disabled = false;
     document.getElementById('sidebyside-input').value = '';
-
-    const userMsg = document.getElementById('sidebyside-user-msg');
-    if (userMsg) {
-        userMsg.textContent = '';
-        userMsg.style.display = 'none';
-    }
 }
 
 // ===== 排行榜 =====
@@ -487,32 +458,11 @@ function showLoading(mode) {
     // 可以添加全局加载指示器
 }
 
-let __toastTimer = null;
-
-function showToast(message, type = 'info') {
-    const toast = document.getElementById('toast');
-    if (!toast) {
-        // 兜底
-        alert(message);
-        return;
-    }
-    toast.textContent = message;
-    toast.classList.remove('error', 'success');
-    if (type === 'error') toast.classList.add('error');
-    if (type === 'success') toast.classList.add('success');
-    toast.classList.add('show');
-
-    if (__toastTimer) clearTimeout(__toastTimer);
-    __toastTimer = setTimeout(() => {
-        toast.classList.remove('show');
-    }, 2400);
-}
-
 function showError(message) {
-    showToast(message, 'error');
+    alert(message);
 }
 
 // 一般提示信息
 function showMessage(message) {
-    showToast(message, 'success');
+    alert(message);
 }

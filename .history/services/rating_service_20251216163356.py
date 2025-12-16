@@ -161,7 +161,7 @@ class RatingService:
                 "rank": rank,
                 "model_id": model.model_id,
                 "model_name": model.model_name,
-                "rating": int(model.rating),
+                "rating": round(model.rating, 1),
                 "total_battles": model.total_battles,
                 "wins": model.wins,
                 "losses": model.losses,
