@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: lmarena-service
+  labels:
+    app: lmarena
+spec:
+  type: ClusterIP  # 内部服务
+  # 如果需要外部访问，使用 LoadBalancer 或 NodePort
+  # type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8000  # 重要：将外部端口 80 映射到容器端口 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: lmarena
+

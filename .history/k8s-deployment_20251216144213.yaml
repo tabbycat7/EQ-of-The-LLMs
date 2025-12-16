@@ -48,7 +48,7 @@ spec:
               name: lmarena-secrets
               key: database-url
         - name: PORT
-          value: "8000"  # 如果平台要求使用 80，改为 "80"
+          value: "8000"
         - name: HOST
           value: "0.0.0.0"
         - name: ENV
