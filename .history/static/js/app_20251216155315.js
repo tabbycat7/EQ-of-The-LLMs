@@ -224,11 +224,10 @@ async function submitVote(winner) {
         document.getElementById('reveal-model-b').textContent = data.model_b_name;
         document.getElementById('reveal-section').style.display = 'block';
 
-        // 本轮投票完成后：保持输入区域隐藏，发送按钮禁用
-        // 只有点击“开始新对战”按钮（startBattle/newBattle）才重新出现输入框
+        // 本轮投票完成后，重新启用输入框和发送按钮，方便继续提问
         const sendBtn = document.getElementById('battle-send-btn');
-        sendBtn.disabled = true;
-        if (battleInputSection) battleInputSection.style.display = 'none';
+        sendBtn.disabled = false;
+        if (battleInputSection) battleInputSection.style.display = 'flex';
 
     } catch (error) {
         console.error('投票失败:', error);
@@ -367,11 +366,12 @@ async function submitSideBySideVote(winner) {
 
         await response.json(); // 暂不需要返回数据展示
         sideBySideVoted = true;
-        // 投票成功后隐藏投票区，展示“新一轮”按钮（不再弹出浏览器对话框）
+        // 投票成功后隐藏投票区，展示“新一轮”按钮
         const voting = document.getElementById('sidebyside-voting');
         if (voting) voting.style.display = 'none';
         const newRound = document.getElementById('sidebyside-new-round');
         if (newRound) newRound.style.display = 'block';
+        showMessage('投票成功，感谢反馈！');
     } catch (error) {
         console.error('投票失败:', error);
         showError('投票失败，请重试');
