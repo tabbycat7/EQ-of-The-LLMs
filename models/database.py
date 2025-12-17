@@ -1,13 +1,25 @@
 """数据库连接和会话管理"""
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
+from sqlalchemy import text
 import config
+
+# 如果是 MySQL，添加字符集参数
+database_url = config.DATABASE_URL
+if database_url.startswith("mysql+asyncmy://") or database_url.startswith("mysql://"):
+    # 确保连接字符串包含 charset=utf8mb4
+    if "charset=" not in database_url and "?" not in database_url:
+        database_url += "?charset=utf8mb4"
+    elif "charset=" not in database_url:
+        database_url += "&charset=utf8mb4"
 
 # 创建异步引擎
 engine = create_async_engine(
-    config.DATABASE_URL,
+    database_url,
     echo=False,
-    future=True
+    future=True,
+    # 对于 MySQL，确保使用 utf8mb4
+    connect_args={"charset": "utf8mb4"} if ("mysql" in database_url.lower()) else {}
 )
 
 # 创建异步会话工厂
@@ -35,8 +47,30 @@ async def init_db():
     from .schemas import Battle, Vote, ModelRating, ChatSession
     
     async with engine.begin() as conn:
+        # 如果是 MySQL，先设置数据库和表的字符集
+        if "mysql" in config.DATABASE_URL.lower():
+            # 设置连接的字符集
+            await conn.execute(text("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"))
+            # 获取数据库名
+            db_name = config.DATABASE_URL.split("/")[-1].split("?")[0]
+            # 设置数据库字符集
+            try:
+                await conn.execute(text(f"ALTER DATABASE `{db_name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
+            except Exception:
+                pass  # 如果数据库不存在或已设置，忽略错误
+        
         # 创建所有表
         await conn.run_sync(Base.metadata.create_all)
+        
+        # 如果是 MySQL，确保所有 TEXT 列使用 utf8mb4
+        if "mysql" in config.DATABASE_URL.lower():
+            try:
+                await conn.execute(text("ALTER TABLE battles CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
+                await conn.execute(text("ALTER TABLE votes CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
+                await conn.execute(text("ALTER TABLE model_ratings CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
+                await conn.execute(text("ALTER TABLE chat_sessions CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
+            except Exception:
+                pass  # 如果表不存在或已设置，忽略错误
     
     # 初始化模型评分
     async with async_session_maker() as session:
