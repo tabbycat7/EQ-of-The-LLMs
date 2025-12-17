@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict
 from typing import List, Dict, Optional
 
 from models.database import get_db
-from models.schemas import ChatSession, ModelRating
+from models.schemas import ChatSession, ModelRating, SideBySideVote
 from services.model_service import ModelService
 import config
 
@@ -151,7 +151,7 @@ async def side_by_side_vote(
 ):
     """
     并排对比模式下的投票
-    仅收集用户偏好，不计入评分（不更新 ELO）
+    记录每一次投票，但不更新评分（不计入积分）
     """
     if request.winner not in ["model_a", "model_b", "tie"]:
         raise HTTPException(status_code=400, detail="无效的投票选项")
@@ -164,6 +164,22 @@ async def side_by_side_vote(
         raise HTTPException(status_code=404, detail=f"模型 {request.model_a_id} 不存在")
     if not model_b_info:
         raise HTTPException(status_code=404, detail=f"模型 {request.model_b_id} 不存在")
+
+    # 记录投票（仅作为日志，不影响评分）
+    session_obj = None
+    if request.session_id:
+        result_session = await db.execute(
+            select(ChatSession).where(ChatSession.id == request.session_id)
+        )
+        session_obj = result_session.scalar_one_or_none()
+
+    side_vote = SideBySideVote(
+        session_id=session_obj.id if session_obj else None,
+        model_a_id=request.model_a_id,
+        model_b_id=request.model_b_id,
+        winner=request.winner,
+    )
+    db.add(side_vote)
 
     # Side-by-Side 不计入评分：读取当前评分（用于展示，不做更新）
     result_a = await db.execute(

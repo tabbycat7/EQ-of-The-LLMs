@@ -65,3 +65,15 @@ class ChatSession(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
+
+class SideBySideVote(Base):
+    """并排对比模式下的投票记录表"""
+    __tablename__ = "sidebyside_votes"
+
+    id = Column(String(50), primary_key=True, default=generate_uuid)
+    session_id = Column(String(50), ForeignKey("chat_sessions.id"), nullable=True)
+    model_a_id = Column(String(100), nullable=False)
+    model_b_id = Column(String(100), nullable=False)
+    winner = Column(String(50), nullable=False)  # "model_a", "model_b", "tie"
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+

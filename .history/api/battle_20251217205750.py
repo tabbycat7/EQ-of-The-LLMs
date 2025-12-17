@@ -24,7 +24,7 @@ class StartBattleResponse(BaseModel):
 
 class ChatRequest(BaseModel):
     """聊天请求"""
-    session_id: Optional[str] = None
+    session_id: str
     message: str
 
 
@@ -189,11 +189,8 @@ async def battle_chat(
                 {
                     "role": "system",
                     "content": (
-                        "你是一个匿名的大语言模型，用于参与 A/B 对战评测。\n"
-                        "要求：\n"
-                        "1. 不要透露自己的真实模型名称、供应商（例如不要说“我是 Claude / GPT / DeepSeek 等”）。\n"
-                        "2. 不要做长篇的自我介绍，直接高质量回答用户当前的问题即可。\n"
-                        "3. 可以参考下面的历史对话来理解上下文，但回答时请聚焦当前这一轮问题，避免重复历史内容。\n"
+                        "下面是之前轮次的历史对话，仅供你在理解上下文时参考。\n"
+                        "请在回答当前用户问题时，避免重复历史内容，并以当前问题为主。\n"
                         "【历史对话开始】\n"
                         f"{history_text}\n"
                         "【历史对话结束】"
@@ -202,16 +199,7 @@ async def battle_chat(
             )
 
     # 当前轮次的用户问题（仅用于本次回复）
-    prompt_messages.append(
-        {
-            "role": "user",
-            "content": (
-                "下面是用户本轮的提问。请直接回答问题本身，不要再问候、不做自我介绍，"
-                "不要提及自己的模型名称或开发公司。\n"
-                f"【用户问题】{request.message}"
-            ),
-        }
-    )
+    prompt_messages.append({"role": "user", "content": request.message})
 
     # 同时获取两个模型的完整回复
     response_a, response_b = await model_service.get_dual_completion(

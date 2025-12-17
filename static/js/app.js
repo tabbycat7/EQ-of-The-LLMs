@@ -138,7 +138,8 @@ async function startBattle() {
         if (!response.ok) throw new Error('启动对战失败');
 
         const data = await response.json();
-        battleSessionId = data.session_id;
+        // 初始不再依赖后端返回的 session_id，由首次发送消息时后端生成
+        battleSessionId = data.session_id || null;
 
         // 显示聊天界面
         document.getElementById('battle-start').style.display = 'none';
@@ -166,7 +167,7 @@ async function sendBattleMessage() {
     const input = document.getElementById('battle-input');
     const message = input.value.trim();
 
-    if (!message || !battleSessionId) return;
+    if (!message) return;
 
     const sendBtn = document.getElementById('battle-send-btn');
     sendBtn.disabled = true;

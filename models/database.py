@@ -44,7 +44,7 @@ async def get_db():
 
 async def init_db():
     """初始化数据库"""
-    from .schemas import Battle, Vote, ModelRating, ChatSession
+    from .schemas import Battle, Vote, ModelRating, ChatSession, SideBySideVote
     
     async with engine.begin() as conn:
         # 如果是 MySQL，先设置数据库和表的字符集

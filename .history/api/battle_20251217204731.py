@@ -24,7 +24,7 @@ class StartBattleResponse(BaseModel):
 
 class ChatRequest(BaseModel):
     """聊天请求"""
-    session_id: Optional[str] = None
+    session_id: str
     message: str
 
 
@@ -83,8 +83,33 @@ async def start_battle(db: AsyncSession = Depends(get_db)):
     开始新的对战会话
     随机选择两个不同的模型
     """
+    # 基于模型 id 去重后，随机选择两个不同的模型
+    available_models = config.AVAILABLE_MODELS
+    # 先按 id 去重，避免同一个模型配置多次时被选成 A/B
+    unique_models_dict = {}
+    for m in available_models:
+        unique_models_dict[m["id"]] = m
+    unique_models = list(unique_models_dict.values())
+
+    if len(unique_models) < 2:
+        raise HTTPException(status_code=500, detail="可用模型数量不足（至少需要 2 个不同的模型）")
+
+    model_a, model_b = random.sample(unique_models, 2)
+    
+    # 创建对战会话
+    battle = Battle(
+        model_a_id=model_a["id"],
+        model_b_id=model_b["id"],
+        conversation=[],
+        is_revealed=0
+    )
+    
+    db.add(battle)
+    await db.commit()
+    await db.refresh(battle)
+    
     return StartBattleResponse(
-        session_id="",
+        session_id=battle.id,
         message="对战开始！请输入你的问题，两个匿名模型将同时回答。"
     )
 
@@ -136,38 +161,14 @@ async def battle_chat(
     在对战模式下发送消息
     两个模型一次性回复（非流式）
     """
-    # 如果没有 session_id，说明是本轮首次提问：此时创建对战会话
-    if not request.session_id:
-        # 基于模型 id 去重后，随机选择两个不同的模型
-        available_models = config.AVAILABLE_MODELS
-        unique_models_dict = {}
-        for m in available_models:
-            unique_models_dict[m["id"]] = m
-        unique_models = list(unique_models_dict.values())
+    # 获取对战会话
+    result = await db.execute(
+        select(Battle).where(Battle.id == request.session_id)
+    )
+    battle = result.scalar_one_or_none()
 
-        if len(unique_models) < 2:
-            raise HTTPException(status_code=500, detail="可用模型数量不足（至少需要 2 个不同的模型）")
-
-        model_a, model_b = random.sample(unique_models, 2)
-
-        battle = Battle(
-            model_a_id=model_a["id"],
-            model_b_id=model_b["id"],
-            conversation=[],
-            is_revealed=0,
-        )
-        db.add(battle)
-        await db.commit()
-        await db.refresh(battle)
-    else:
-        # 使用已有对战会话
-        result = await db.execute(
-            select(Battle).where(Battle.id == request.session_id)
-        )
-        battle = result.scalar_one_or_none()
-
-        if not battle:
-            raise HTTPException(status_code=404, detail="对战会话不存在")
+    if not battle:
+        raise HTTPException(status_code=404, detail="对战会话不存在")
 
     # 1) 读取已保存的历史对话（用于持久化）
     history = battle.conversation.copy() if battle.conversation else []
@@ -189,11 +190,8 @@ async def battle_chat(
                 {
                     "role": "system",
                     "content": (
-                        "你是一个匿名的大语言模型，用于参与 A/B 对战评测。\n"
-                        "要求：\n"
-                        "1. 不要透露自己的真实模型名称、供应商（例如不要说“我是 Claude / GPT / DeepSeek 等”）。\n"
-                        "2. 不要做长篇的自我介绍，直接高质量回答用户当前的问题即可。\n"
-                        "3. 可以参考下面的历史对话来理解上下文，但回答时请聚焦当前这一轮问题，避免重复历史内容。\n"
+                        "下面是之前轮次的历史对话，仅供你在理解上下文时参考。\n"
+                        "请在回答当前用户问题时，避免重复历史内容，并以当前问题为主。\n"
                         "【历史对话开始】\n"
                         f"{history_text}\n"
                         "【历史对话结束】"
@@ -202,16 +200,7 @@ async def battle_chat(
             )
 
     # 当前轮次的用户问题（仅用于本次回复）
-    prompt_messages.append(
-        {
-            "role": "user",
-            "content": (
-                "下面是用户本轮的提问。请直接回答问题本身，不要再问候、不做自我介绍，"
-                "不要提及自己的模型名称或开发公司。\n"
-                f"【用户问题】{request.message}"
-            ),
-        }
-    )
+    prompt_messages.append({"role": "user", "content": request.message})
 
     # 同时获取两个模型的完整回复
     response_a, response_b = await model_service.get_dual_completion(
