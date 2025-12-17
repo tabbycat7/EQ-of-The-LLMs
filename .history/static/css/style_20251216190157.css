@@ -774,8 +774,8 @@ body {
 
 .mode-content {
     display: none;
-    /* 再放宽最大宽度，让聊天区域在大屏上几乎占满整行 */
-    max-width: 1600px;
+    /* 放宽最大宽度，让聊天区域更“张开”一些 */
+    max-width: 1280px;
     margin: 0 auto;
 }
 
@@ -946,9 +946,9 @@ body {
 
 .response-content {
     padding: 14px 14px;
-    /* 再提高单次回复的高度范围，让 chat-view 更接近“铺满”屏幕高度 */
-    min-height: 380px;
-    max-height: 800px;
+    /* 提高单次回复的默认高度上限，让聊天区域在竖直方向占据更多空间 */
+    min-height: 260px;
+    max-height: 600px;
     overflow-y: auto;
     line-height: 1.65;
     white-space: pre-wrap;

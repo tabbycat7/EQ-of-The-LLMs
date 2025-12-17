@@ -22,8 +22,8 @@ body {
     background: radial-gradient(circle at 15% 20%, #f5f7ff 0%, #f8f9fb 40%, #f7f8fb 70%, #f7f8fb 100%);
     min-height: 100vh;
     color: var(--text);
-    /* 全局基础字号再放大一档，让整体文字更清晰、更易读 */
-    font-size: 18px;
+    font-size: 16px;
+    /* 全局基础字号进一步放大，默认正文约等于浏览器标准大小 */
 }
 
 .page {
@@ -774,8 +774,8 @@ body {
 
 .mode-content {
     display: none;
-    /* 再放宽最大宽度，让聊天区域在大屏上几乎占满整行 */
-    max-width: 1600px;
+    /* 放宽最大宽度，让聊天区域更“张开”一些 */
+    max-width: 1280px;
     margin: 0 auto;
 }
 
@@ -946,9 +946,9 @@ body {
 
 .response-content {
     padding: 14px 14px;
-    /* 再提高单次回复的高度范围，让 chat-view 更接近“铺满”屏幕高度 */
-    min-height: 380px;
-    max-height: 800px;
+    /* 提高单次回复的默认高度上限，让聊天区域在竖直方向占据更多空间 */
+    min-height: 260px;
+    max-height: 600px;
     overflow-y: auto;
     line-height: 1.65;
     white-space: pre-wrap;
