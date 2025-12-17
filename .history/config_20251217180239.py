@@ -62,7 +62,7 @@ AVAILABLE_MODELS = [
     },
     {
         "id": "gemini-3-pro-preview",
-        "name": "Gemini 3 Pro",
+        "name": "Gemini 3 Pro Preview",
         "provider": "openai",
         "initial_rating": 0
     },
@@ -74,7 +74,7 @@ AVAILABLE_MODELS = [
         "initial_rating": 0
     },
     {
-        "id": "gemini-2.5-flash",
+        "id": "google/gemini-2.5-flash",
         "name": "Gemini 2.5 Flash",
         "provider": "openai",
         "initial_rating": 0
@@ -86,20 +86,26 @@ AVAILABLE_MODELS = [
         "initial_rating": 0
     },
     {
-        "id": "o3",
+        "id": "openai/o3",
         "name": "OpenAI O3",
         "provider": "openai",
         "initial_rating": 0
     },
     {
-        "id": "grok-4",
+        "id": "x-ai/grok-4",
         "name": "Grok 4",
         "provider": "xAI",
         "initial_rating": 0
     },
     {
-        "id":"qwen3-max",
-        "name":"Qwen3 Max",
+        "id": "x-ai/grok-3",
+        "name": "Grok 3",
+        "provider": "xAI",
+        "initial_rating": 0
+    },
+    {
+        "id":"qwen/qwen3-235b-a22b-thinking-2507",
+        "name":"Qwen Max",
         "provider":"Qwen",
         "initial_rating":0
     },

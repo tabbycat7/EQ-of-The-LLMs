@@ -245,6 +245,7 @@ body {
     margin: 0 auto;
 }
 
+/* 通用双列回复栅格（部分旧布局使用） */
 .responses-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -904,6 +905,46 @@ body {
     margin-left: auto;
     background: linear-gradient(135deg, rgba(16, 163, 127, 0.14), rgba(16, 163, 127, 0.05));
     border-color: rgba(16, 163, 127, 0.35);
+}
+
+/* Battle 每轮对话布局：左侧模型 A/B，右侧用户消息 */
+.responses-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.battle-round {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+/* 调整顺序：左列是模型 A/B，右列是用户消息 */
+.battle-round .responses-grid-inner {
+    order: 1;
+}
+
+.battle-round .messages {
+    order: 2;
+}
+
+.battle-round .responses-grid-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    flex: 1 1 auto;
+    max-width: 68%;
+}
+
+.battle-round .messages {
+    flex: 0 0 auto;
+    max-width: 32%;
+}
+
+.battle-round .message.user {
+    margin-left: 0;
 }
 
 .message:hover {

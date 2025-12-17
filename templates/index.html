@@ -27,11 +27,11 @@
                     <span class="nav-icon">⚔️</span>
                     <span class="nav-label">匿名对战</span>
                 </button>
-                <button class="mode-btn nav-btn" data-mode="sidebyside">
+                <button class="mode-btn nav-btn" data-mode="sidebyside" style="display: none;">
                     <span class="nav-icon">📊</span>
                     <span class="nav-label">并排对比</span>
                 </button>
-                <button class="mode-btn nav-btn" data-mode="leaderboard">
+                <button class="mode-btn nav-btn" data-mode="leaderboard" style="display: none;">
                     <span class="nav-icon">🏆</span>
                     <span class="nav-label">排行榜</span>
                 </button>
@@ -64,24 +64,8 @@
                     </div>
 
                     <div id="battle-chat" class="chat-view" style="display: none;">
-                        <div class="messages">
-                            <div id="battle-user-msg" class="message user" style="display: none;"></div>
-                        </div>
-
-                        <div class="responses-grid">
-                            <div class="response-box">
-                                <div class="response-header">模型 A</div>
-                                <div id="response-a" class="response-content">
-                                    <div class="empty-state">等待回复...</div>
-                                </div>
-                            </div>
-                            <div class="response-box">
-                                <div class="response-header">模型 B</div>
-                                <div id="response-b" class="response-content">
-                                    <div class="empty-state">等待回复...</div>
-                                </div>
-                            </div>
-                        </div>
+                        <!-- 多轮对话容器：每轮包含「用户问题 + 模型 A / 模型 B 回答」 -->
+                        <div id="battle-responses" class="responses-list"></div>
 
                         <div id="voting-section" class="voting-section" style="display: none;">
                             <h3>选择更好的回答：</h3>
@@ -94,18 +78,8 @@
 
                         <div id="reveal-section" class="reveal-section" style="display: none;">
                             <div class="reveal-info">
-                                <h3>模型揭晓</h3>
-                                <div class="reveal-grid">
-                                    <div class="reveal-item">
-                                        <span class="reveal-label">模型 A</span>
-                                        <span id="reveal-model-a" class="reveal-value"></span>
-                                    </div>
-                                    <div class="reveal-item">
-                                        <span class="reveal-label">模型 B</span>
-                                        <span id="reveal-model-b" class="reveal-value"></span>
-                                    </div>
-                                </div>
                                 <button id="new-battle-btn" class="primary-btn ghost">开始新对战</button>
+                                <button id="continue-battle-btn" class="secondary-btn ghost">继续使用当前模型进行对战</button>
                             </div>
                         </div>
 
@@ -125,7 +99,7 @@
                 </section>
 
                 <!-- 并排对比模式 -->
-                <section id="sidebyside-mode" class="mode-content">
+                <section id="sidebyside-mode" class="mode-content" style="display: none;">
                     <div class="mode-header">
                         <div class="mode-title">
                             <h2>并排对比</h2>
@@ -193,7 +167,7 @@
                 </section>
 
                 <!-- 排行榜模式 -->
-                <section id="leaderboard-mode" class="mode-content">
+                <section id="leaderboard-mode" class="mode-content" style="display: none;">
                     <div class="mode-header">
                         <div class="mode-title">
                             <h2>排行榜</h2>

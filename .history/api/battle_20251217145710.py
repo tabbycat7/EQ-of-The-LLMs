@@ -66,35 +66,20 @@ class RevealResponse(BaseModel):
     winner: Optional[str]
 
 
-class ContinueBattleRequest(BaseModel):
-    """继续当前模型对战，请求体"""
-    session_id: str
-
-
-class ContinueBattleResponse(BaseModel):
-    """继续当前模型对战，响应体"""
-    session_id: str
-    message: str
-
-
 @router.post("/start", response_model=StartBattleResponse)
 async def start_battle(db: AsyncSession = Depends(get_db)):
     """
     开始新的对战会话
     随机选择两个不同的模型
     """
-    # 基于模型 id 去重后，随机选择两个不同的模型
+    # 随机选择两个不同的模型
     available_models = config.AVAILABLE_MODELS
-    # 先按 id 去重，避免同一个模型配置多次时被选成 A/B
-    unique_models_dict = {}
-    for m in available_models:
-        unique_models_dict[m["id"]] = m
-    unique_models = list(unique_models_dict.values())
-
-    if len(unique_models) < 2:
-        raise HTTPException(status_code=500, detail="可用模型数量不足（至少需要 2 个不同的模型）")
-
-    model_a, model_b = random.sample(unique_models, 2)
+    if len(available_models) < 2:
+        raise HTTPException(status_code=500, detail="可用模型数量不足")
+    
+    selected_models = random.sample(available_models, 2)
+    model_a = selected_models[0]
+    model_b = selected_models[1]
     
     # 创建对战会话
     battle = Battle(
@@ -111,44 +96,6 @@ async def start_battle(db: AsyncSession = Depends(get_db)):
     return StartBattleResponse(
         session_id=battle.id,
         message="对战开始！请输入你的问题，两个匿名模型将同时回答。"
-    )
-
-
-@router.post("/continue", response_model=ContinueBattleResponse)
-async def continue_battle(
-    request: ContinueBattleRequest,
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    在当前两模型基础上继续新的对战轮次：
-    - 复用原对战的 model_a / model_b
-    - 复制历史对话作为新对战的初始 conversation
-    - 返回一个新的 session_id，避免重复投票报错
-    """
-    # 查找原对战
-    result = await db.execute(
-        select(Battle).where(Battle.id == request.session_id)
-    )
-    old_battle = result.scalar_one_or_none()
-
-    if not old_battle:
-        raise HTTPException(status_code=404, detail="原对战会话不存在")
-
-    # 创建新的对战会话，复用模型与历史对话
-    new_battle = Battle(
-        model_a_id=old_battle.model_a_id,
-        model_b_id=old_battle.model_b_id,
-        conversation=old_battle.conversation or [],
-        is_revealed=0,
-    )
-
-    db.add(new_battle)
-    await db.commit()
-    await db.refresh(new_battle)
-
-    return ContinueBattleResponse(
-        session_id=new_battle.id,
-        message="已继续当前模型进行新一轮对战。",
     )
 
 
@@ -170,34 +117,8 @@ async def battle_chat(
     if not battle:
         raise HTTPException(status_code=404, detail="对战会话不存在")
 
-    # 构建发给大模型的消息：
-    # 将历史对话打包到一个带标签的 system 消息中，避免直接混入当前对话造成干扰
-    messages = []
-
-    if battle.conversation:
-        # 将历史轮次整理成纯文本块
-        history_lines = []
-        for msg in battle.conversation:
-            role = msg.get("role", "assistant")
-            content = msg.get("content", "")
-            history_lines.append(f"{role}: {content}")
-
-        history_text = "\n".join(history_lines)
-        if history_text.strip():
-            messages.append(
-                {
-                    "role": "system",
-                    "content": (
-                        "下面是之前轮次的历史对话，仅供你在理解上下文时参考。\n"
-                        "请在回答当前用户问题时，避免重复历史内容，并以当前问题为主。\n"
-                        "【历史对话开始】\n"
-                        f"{history_text}\n"
-                        "【历史对话结束】"
-                    ),
-                }
-            )
-
-    # 当前轮次的用户问题
+    # 构建消息历史
+    messages = battle.conversation.copy() if battle.conversation else []
     messages.append({"role": "user", "content": request.message})
 
     # 同时获取两个模型的完整回复

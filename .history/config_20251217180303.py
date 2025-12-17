@@ -62,7 +62,7 @@ AVAILABLE_MODELS = [
     },
     {
         "id": "gemini-3-pro-preview",
-        "name": "Gemini 3 Pro",
+        "name": "Gemini 3 Pro Preview",
         "provider": "openai",
         "initial_rating": 0
     },
@@ -74,7 +74,7 @@ AVAILABLE_MODELS = [
         "initial_rating": 0
     },
     {
-        "id": "gemini-2.5-flash",
+        "id": "google/gemini-2.5-flash",
         "name": "Gemini 2.5 Flash",
         "provider": "openai",
         "initial_rating": 0
@@ -98,8 +98,8 @@ AVAILABLE_MODELS = [
         "initial_rating": 0
     },
     {
-        "id":"qwen3-max",
-        "name":"Qwen3 Max",
+        "id":"qwen/qwen3-235b-a22b-thinking-2507",
+        "name":"Qwen Max",
         "provider":"Qwen",
         "initial_rating":0
     },

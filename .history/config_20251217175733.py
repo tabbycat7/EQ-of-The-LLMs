@@ -19,7 +19,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./lmarena.db")
 AVAILABLE_MODELS = [
     # OpenAI 兼容模型（使用 zetatechs.com API）
     {
-        "id": "gpt-4o",
+        "id": "chatgpt-4o-latest",
         "name": "GPT-4o",
         "provider": "openai",
         "initial_rating": 0
@@ -37,69 +37,75 @@ AVAILABLE_MODELS = [
         "initial_rating": 0
     },
     {
-        "id": "gpt-5-mini",
+        "id": "openai/gpt-5-mini",
         "name": "GPT-5 Mini",
         "provider": "openai",
         "initial_rating": 0
     },
     {
-        "id": "claude-opus-4-5-20251101",
+        "id": "anthropic/claude-opus-4.5",
         "name": "Claude Opus 4.5",
         "provider": "openai",
         "initial_rating": 0
     },
     {
-        "id": "claude-haiku-4-5-20251001",
+        "id": "anthropic/claude-haiku-4.5",
         "name": "Claude Haiku 4.5",
         "provider": "openai",
         "initial_rating": 0
     },
     {
-        "id": "claude-sonnet-4-5-20250929",
+        "id": "anthropic/claude-sonnet-4.5",
         "name": "Claude Sonnet 4.5",
         "provider": "openai",
         "initial_rating": 0
     },
     {
-        "id": "gemini-3-pro-preview",
-        "name": "Gemini 3 Pro",
+        "id": "google/gemini-3-pro-preview",
+        "name": "Gemini 3 Pro Preview",
         "provider": "openai",
         "initial_rating": 0
     },
 
     {
-        "id": "gemini-2.5-pro",
+        "id": "google/gemini-2.5-pro",
         "name": "Gemini 2.5 Pro",
         "provider": "openai",
         "initial_rating": 0
     },
     {
-        "id": "gemini-2.5-flash",
+        "id": "google/gemini-2.5-flash",
         "name": "Gemini 2.5 Flash",
         "provider": "openai",
         "initial_rating": 0
     },
     {
-        "id": "o1",
+        "id": "openai/o1",
         "name": "OpenAI O1",
         "provider": "openai",
         "initial_rating": 0
     },
     {
-        "id": "o3",
+        "id": "openai/o3",
         "name": "OpenAI O3",
         "provider": "openai",
         "initial_rating": 0
     },
     {
-        "id": "grok-4",
+        "id": "x-ai/grok-4",
         "name": "Grok 4",
         "provider": "xAI",
         "initial_rating": 0
     },
     {
-        "id":"qwen3-max",
-        "name":"Qwen3 Max",
+        "id": "x-ai/grok-3",
+        "name": "Grok 3",
+        "provider": "xAI",
+        "initial_rating": 0
+    },
+    {
+        "id":"qwen/qwen3-235b-a22b-thinking-2507",
+        "name":"Qwen Max",
         "provider":"Qwen",
         "initial_rating":0
     },

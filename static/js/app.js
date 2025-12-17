@@ -101,6 +101,7 @@ function setupModeSelector() {
 function setupBattleMode() {
     const startBtn = document.getElementById('start-battle-btn');
     const newBattleBtn = document.getElementById('new-battle-btn');
+    const continueBattleBtn = document.getElementById('continue-battle-btn');
     const sendBtn = document.getElementById('battle-send-btn');
     const input = document.getElementById('battle-input');
     const voteButtons = document.querySelectorAll('.battle-vote-btn');
@@ -109,6 +110,9 @@ function setupBattleMode() {
 
     startBtn.addEventListener('click', startBattle);
     newBattleBtn.addEventListener('click', startBattle);
+    if (continueBattleBtn) {
+        continueBattleBtn.addEventListener('click', continueCurrentBattle);
+    }
     sendBtn.addEventListener('click', sendBattleMessage);
 
     input.addEventListener('keypress', (e) => {
@@ -140,22 +144,17 @@ async function startBattle() {
         document.getElementById('battle-start').style.display = 'none';
         document.getElementById('battle-chat').style.display = 'block';
 
-        // 重置界面
-        document.getElementById('response-a').innerHTML = '<div class="empty-state">等待回复...</div>';
-        document.getElementById('response-b').innerHTML = '<div class="empty-state">等待回复...</div>';
+        // 重置界面：清空多轮对话容器，等待新一轮对话
+        const battleResponses = document.getElementById('battle-responses');
+        if (battleResponses) {
+            battleResponses.innerHTML = '';
+        }
         document.getElementById('voting-section').style.display = 'none';
         document.getElementById('reveal-section').style.display = 'none';
         document.getElementById('battle-input').value = '';
         document.getElementById('battle-send-btn').disabled = false;
         // 新一轮开始时显示输入区域
         if (battleInputSection) battleInputSection.style.display = 'block';
-
-        // 清空/隐藏上一条用户提问气泡
-        const userMsg = document.getElementById('battle-user-msg');
-        if (userMsg) {
-            userMsg.textContent = '';
-            userMsg.style.display = 'none';
-        }
 
     } catch (error) {
         console.error('启动对战失败:', error);
@@ -175,16 +174,44 @@ async function sendBattleMessage() {
     if (battleInputSection) battleInputSection.style.display = 'none';
 
     try {
-        // 显示用户提问气泡（ChatGPT 风格）
-        const userMsg = document.getElementById('battle-user-msg');
-        if (userMsg) {
-            userMsg.textContent = message;
-            userMsg.style.display = 'block';
+        // 在多轮对话容器中，为本轮新增一个「用户问题 + 模型 A / 模型 B」区域
+        const battleResponses = document.getElementById('battle-responses');
+        if (!battleResponses) {
+            throw new Error('未找到 battle-responses 容器');
         }
 
-        // 显示加载状态
-        document.getElementById('response-a').innerHTML = '<div class="loading">思考中...</div>';
-        document.getElementById('response-b').innerHTML = '<div class="loading">思考中...</div>';
+        const roundEl = document.createElement('div');
+        // 每一轮独立容器：顶部是用户消息，底部是 A/B 模型回复
+        roundEl.className = 'battle-round';
+        roundEl.innerHTML = `
+            <div class="messages">
+                <div class="message user"></div>
+            </div>
+            <div class="responses-grid-inner">
+                <div class="response-box">
+                    <div class="response-header">模型 A</div>
+                    <div class="response-content" data-role="response-a">
+                        <div class="loading">思考中...</div>
+                    </div>
+                </div>
+                <div class="response-box">
+                    <div class="response-header">模型 B</div>
+                    <div class="response-content" data-role="response-b">
+                        <div class="loading">思考中...</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        battleResponses.appendChild(roundEl);
+
+        // 填充本轮用户问题到这一轮顶部
+        const userMsgEl = roundEl.querySelector('.message.user');
+        if (userMsgEl) {
+            userMsgEl.textContent = message;
+        }
+
+        const responseA = roundEl.querySelector('.response-content[data-role="response-a"]');
+        const responseB = roundEl.querySelector('.response-content[data-role="response-b"]');
 
         const response = await fetch('/api/battle/chat', {
             method: 'POST',
@@ -197,11 +224,23 @@ async function sendBattleMessage() {
 
         if (!response.ok) throw new Error('发送消息失败');
 
+        // 非流式：一次性获取完整 JSON
         const data = await response.json();
 
-        // 显示回复
-        document.getElementById('response-a').textContent = data.response_a;
-        document.getElementById('response-b').textContent = data.response_b;
+        // 更新对战会话 ID（以防后端有调整）
+        if (data.session_id) {
+            battleSessionId = data.session_id;
+        }
+
+        // 将本轮新回复写入刚刚创建的这一轮卡片中，旧轮次卡片保持不变
+        const finalA = (data.response_a || '').trim();
+        const finalB = (data.response_b || '').trim();
+        if (responseA) {
+            responseA.innerHTML = finalA || '';
+        }
+        if (responseB) {
+            responseB.innerHTML = finalB || '';
+        }
 
         // 显示投票区域
         document.getElementById('voting-section').style.display = 'block';
@@ -234,13 +273,11 @@ async function submitVote(winner) {
         // 隐藏投票区域
         document.getElementById('voting-section').style.display = 'none';
 
-        // 显示揭示区域
-        document.getElementById('reveal-model-a').textContent = data.model_a_name;
-        document.getElementById('reveal-model-b').textContent = data.model_b_name;
+        // 显示“开始新对战 / 继续当前模型对战”按钮区域
         document.getElementById('reveal-section').style.display = 'block';
 
         // 本轮投票完成后：保持输入区域隐藏，发送按钮禁用
-        // 只有点击“开始新对战”按钮（startBattle/newBattle）才重新出现输入框
+        // 只有点击"开始新对战"按钮（startBattle/newBattle）才重新出现输入框
         const sendBtn = document.getElementById('battle-send-btn');
         sendBtn.disabled = true;
         if (battleInputSection) battleInputSection.style.display = 'none';
@@ -248,6 +285,51 @@ async function submitVote(winner) {
     } catch (error) {
         console.error('投票失败:', error);
         showError('投票失败，请重试');
+    }
+}
+
+// 继续使用当前模型进行对战（保留界面聊天内容 + 历史对话）
+async function continueCurrentBattle() {
+    // 需要已有的对战 session，才能基于它继续
+    if (!battleSessionId) {
+        showError('当前没有正在进行的对战，请先点击“开始对战”。');
+        return;
+    }
+
+    const sendBtn = document.getElementById('battle-send-btn');
+
+    try {
+        // 调用后端 /api/battle/continue，基于当前对战创建一个新的 session
+        const resp = await fetch('/api/battle/continue', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: battleSessionId }),
+        });
+
+        if (!resp.ok) {
+            throw new Error('继续对战失败');
+        }
+
+        const data = await resp.json();
+        // 使用新的 session_id，避免投票时命中“该对战已经投过票了”的限制
+        battleSessionId = data.session_id;
+
+        // 隐藏“结果/按钮”区域，回到提问状态，但保留上一轮对话内容
+        const revealSection = document.getElementById('reveal-section');
+        if (revealSection) revealSection.style.display = 'none';
+
+        // 确保聊天区域处于显示状态
+        const battleStart = document.getElementById('battle-start');
+        const battleChat = document.getElementById('battle-chat');
+        if (battleStart) battleStart.style.display = 'none';
+        if (battleChat) battleChat.style.display = 'block';
+
+        // 不清空界面上的聊天内容，只是重新启用输入与发送
+        if (sendBtn) sendBtn.disabled = false;
+        if (battleInputSection) battleInputSection.style.display = 'block';
+    } catch (e) {
+        console.error('继续对战失败:', e);
+        showError('继续对战失败，请稍后重试');
     }
 }
 
