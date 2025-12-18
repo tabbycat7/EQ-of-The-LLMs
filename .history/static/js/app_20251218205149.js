@@ -202,56 +202,21 @@ function setupLogout() {
 function setupAdminPanel() {
     const adminPanel = document.getElementById('admin-panel');
     const addBtn = document.getElementById('admin-add-user-btn');
-    const cancelBtn = document.getElementById('admin-cancel-btn');
-    const toggleBtn = document.getElementById('admin-toggle-panel-btn');
     const msgDiv = document.getElementById('admin-add-user-msg');
 
-    if (!adminPanel || !addBtn || !toggleBtn) return;
+    if (!adminPanel || !addBtn) return;
 
-    // 每次初始化时先重置面板内容并隐藏
-    adminPanel.style.display = 'none';
-    if (msgDiv) {
-        msgDiv.textContent = '';
-    }
-
-    // 隐藏面板的函数
-    const hideAdminPanel = () => {
-        adminPanel.style.display = 'none';
-        const userIdInput = document.getElementById('admin-new-user-id');
-        const passwordInput = document.getElementById('admin-new-user-password');
-        if (userIdInput) userIdInput.value = '';
-        if (passwordInput) passwordInput.value = '';
+    if (currentUserId === 'admin') {
+        adminPanel.style.display = 'block';
+        addBtn.onclick = handleAdminAddUser;
         if (msgDiv) {
             msgDiv.textContent = '';
-            msgDiv.style.color = '#6b7280';
-        }
-    };
-
-    // 仅 admin 显示"添加用户"按钮
-    if (currentUserId === 'admin') {
-        toggleBtn.style.display = 'inline-flex';
-        toggleBtn.onclick = () => {
-            // 点击时展开面板，并清空输入
-            const userIdInput = document.getElementById('admin-new-user-id');
-            const passwordInput = document.getElementById('admin-new-user-password');
-            if (userIdInput) userIdInput.value = '';
-            if (passwordInput) passwordInput.value = '';
-            if (msgDiv) {
-                msgDiv.textContent = '';
-                msgDiv.style.color = '#6b7280';
-            }
-            adminPanel.style.display = 'block';
-            if (userIdInput) {
-                setTimeout(() => userIdInput.focus(), 50);
-            }
-        };
-        addBtn.onclick = handleAdminAddUser;
-        if (cancelBtn) {
-            cancelBtn.onclick = hideAdminPanel;
         }
     } else {
-        toggleBtn.style.display = 'none';
         adminPanel.style.display = 'none';
+        if (msgDiv) {
+            msgDiv.textContent = '';
+        }
     }
 }
 
@@ -282,75 +247,6 @@ async function handleLogout() {
         // 即使API调用失败，也尝试显示登录界面
         showLoginModal();
         showError('退出登录失败，请重试');
-    }
-}
-
-// 管理员添加用户
-async function handleAdminAddUser() {
-    const userIdInput = document.getElementById('admin-new-user-id');
-    const passwordInput = document.getElementById('admin-new-user-password');
-    const msgDiv = document.getElementById('admin-add-user-msg');
-    const addBtn = document.getElementById('admin-add-user-btn');
-
-    if (!userIdInput || !passwordInput || !addBtn) return;
-
-    const userId = userIdInput.value.trim();
-    const password = passwordInput.value;
-
-    if (!userId || !password) {
-        if (msgDiv) {
-            msgDiv.textContent = '请输入新用户ID和密码';
-            msgDiv.style.color = '#b91c1c';
-        }
-        return;
-    }
-
-    addBtn.disabled = true;
-
-    try {
-        const response = await fetch('/api/auth/users', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-                user_id: userId,
-                password: password,
-            }),
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-            // 清空输入框并提示成功
-            userIdInput.value = '';
-            passwordInput.value = '';
-            if (msgDiv) {
-                msgDiv.textContent = '用户添加成功';
-                msgDiv.style.color = '#166534';
-            }
-            // 添加成功后自动隐藏面板
-            const adminPanel = document.getElementById('admin-panel');
-            if (adminPanel) {
-                setTimeout(() => {
-                    adminPanel.style.display = 'none';
-                }, 500);
-            }
-        } else {
-            if (msgDiv) {
-                msgDiv.textContent = data.detail || data.message || '添加用户失败';
-                msgDiv.style.color = '#b91c1c';
-            }
-        }
-    } catch (error) {
-        console.error('添加用户失败:', error);
-        if (msgDiv) {
-            msgDiv.textContent = '添加用户失败，请稍后重试';
-            msgDiv.style.color = '#b91c1c';
-        }
-    } finally {
-        addBtn.disabled = false;
     }
 }
 

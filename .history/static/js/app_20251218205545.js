@@ -202,7 +202,6 @@ function setupLogout() {
 function setupAdminPanel() {
     const adminPanel = document.getElementById('admin-panel');
     const addBtn = document.getElementById('admin-add-user-btn');
-    const cancelBtn = document.getElementById('admin-cancel-btn');
     const toggleBtn = document.getElementById('admin-toggle-panel-btn');
     const msgDiv = document.getElementById('admin-add-user-msg');
 
@@ -214,20 +213,7 @@ function setupAdminPanel() {
         msgDiv.textContent = '';
     }
 
-    // 隐藏面板的函数
-    const hideAdminPanel = () => {
-        adminPanel.style.display = 'none';
-        const userIdInput = document.getElementById('admin-new-user-id');
-        const passwordInput = document.getElementById('admin-new-user-password');
-        if (userIdInput) userIdInput.value = '';
-        if (passwordInput) passwordInput.value = '';
-        if (msgDiv) {
-            msgDiv.textContent = '';
-            msgDiv.style.color = '#6b7280';
-        }
-    };
-
-    // 仅 admin 显示"添加用户"按钮
+    // 仅 admin 显示“添加用户”按钮
     if (currentUserId === 'admin') {
         toggleBtn.style.display = 'inline-flex';
         toggleBtn.onclick = () => {
@@ -246,9 +232,6 @@ function setupAdminPanel() {
             }
         };
         addBtn.onclick = handleAdminAddUser;
-        if (cancelBtn) {
-            cancelBtn.onclick = hideAdminPanel;
-        }
     } else {
         toggleBtn.style.display = 'none';
         adminPanel.style.display = 'none';

@@ -713,6 +713,16 @@ body {
     font-size: 14px;
 }
 
+.admin-nav-btn {
+    margin-top: 4px;
+    background: rgba(15, 139, 255, 0.08);
+    border-color: rgba(15, 139, 255, 0.2);
+}
+
+.admin-nav-btn:hover {
+    background: rgba(15, 139, 255, 0.15);
+}
+
 .sidebar-footer {
     margin-top: auto;
     padding: 14px 16px 18px;
@@ -722,6 +732,49 @@ body {
     display: flex;
     flex-direction: column;
     gap: 6px;
+}
+
+.admin-panel {
+    margin: 8px 0 4px 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #f3f4ff;
+    border: 1px solid #e0e7ff;
+}
+
+.admin-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: #111827;
+}
+
+.admin-panel .form-group {
+    margin-bottom: 6px;
+}
+
+.admin-panel input {
+    width: 100%;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    font-size: 13px;
+}
+
+.admin-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.admin-buttons button {
+    flex: 1;
+}
+
+.admin-hint {
+    margin-top: 4px;
+    font-size: 12px;
+    color: #6b7280;
 }
 
 .logout-btn {

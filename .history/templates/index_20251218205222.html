@@ -58,11 +58,6 @@
                     <span class="nav-icon">⚔️</span>
                     <span class="nav-label">匿名对战</span>
                 </button>
-                <!-- 仅 admin 可见的"添加用户"按钮 -->
-                <button id="admin-toggle-panel-btn" class="nav-btn admin-nav-btn" type="button" style="display: none;">
-                    <span class="nav-icon">➕</span>
-                    <span class="nav-label">添加用户</span>
-                </button>
                 <button class="mode-btn nav-btn" data-mode="sidebyside" style="display: none;">
                     <span class="nav-icon">📊</span>
                     <span class="nav-label">并排对比</span>
@@ -75,6 +70,20 @@
 
             <div class="sidebar-footer">
                 <div class="sidebar-note">提示：仅 Battle 投票计入积分</div>
+                <!-- 管理员工具 -->
+                <div id="admin-panel" class="admin-panel" style="display: none;">
+                    <div class="admin-title">管理员：添加用户</div>
+                    <div class="form-group">
+                        <label for="admin-new-user-id">新用户ID</label>
+                        <input type="text" id="admin-new-user-id" placeholder="请输入新用户ID">
+                    </div>
+                    <div class="form-group">
+                        <label for="admin-new-user-password">新用户密码</label>
+                        <input type="password" id="admin-new-user-password" placeholder="请输入新用户密码">
+                    </div>
+                    <button id="admin-add-user-btn" class="secondary-btn" type="button">添加用户</button>
+                    <div id="admin-add-user-msg" class="admin-hint"></div>
+                </div>
                 <button id="logout-btn" class="logout-btn" title="退出登录">
                     <span class="logout-icon">🚪</span>
                     <span class="logout-label">退出登录</span>
@@ -101,24 +110,6 @@
                         <div id="battle-start">
                             <button id="start-battle-btn" class="primary-btn">开始对战</button>
                         </div>
-                    </div>
-
-                    <!-- 管理员添加用户面板（默认隐藏，仅 admin 且点击按钮后显示） -->
-                    <div id="admin-panel" class="admin-panel" style="display: none;">
-                        <div class="admin-title">管理员：添加用户</div>
-                        <div class="form-group">
-                            <label for="admin-new-user-id">新用户ID</label>
-                            <input type="text" id="admin-new-user-id" placeholder="请输入新用户ID">
-                        </div>
-                        <div class="form-group">
-                            <label for="admin-new-user-password">新用户密码</label>
-                            <input type="password" id="admin-new-user-password" placeholder="请输入新用户密码">
-                        </div>
-                        <div class="admin-buttons">
-                            <button id="admin-add-user-btn" class="secondary-btn" type="button">添加用户</button>
-                            <button id="admin-cancel-btn" class="secondary-btn ghost" type="button">取消</button>
-                        </div>
-                        <div id="admin-add-user-msg" class="admin-hint"></div>
                     </div>
 
                     <div id="battle-chat" class="chat-view" style="display: none;">

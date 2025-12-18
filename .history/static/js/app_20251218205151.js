@@ -202,56 +202,21 @@ function setupLogout() {
 function setupAdminPanel() {
     const adminPanel = document.getElementById('admin-panel');
     const addBtn = document.getElementById('admin-add-user-btn');
-    const cancelBtn = document.getElementById('admin-cancel-btn');
-    const toggleBtn = document.getElementById('admin-toggle-panel-btn');
     const msgDiv = document.getElementById('admin-add-user-msg');
 
-    if (!adminPanel || !addBtn || !toggleBtn) return;
+    if (!adminPanel || !addBtn) return;
 
-    // 每次初始化时先重置面板内容并隐藏
-    adminPanel.style.display = 'none';
-    if (msgDiv) {
-        msgDiv.textContent = '';
-    }
-
-    // 隐藏面板的函数
-    const hideAdminPanel = () => {
-        adminPanel.style.display = 'none';
-        const userIdInput = document.getElementById('admin-new-user-id');
-        const passwordInput = document.getElementById('admin-new-user-password');
-        if (userIdInput) userIdInput.value = '';
-        if (passwordInput) passwordInput.value = '';
+    if (currentUserId === 'admin') {
+        adminPanel.style.display = 'block';
+        addBtn.onclick = handleAdminAddUser;
         if (msgDiv) {
             msgDiv.textContent = '';
-            msgDiv.style.color = '#6b7280';
-        }
-    };
-
-    // 仅 admin 显示"添加用户"按钮
-    if (currentUserId === 'admin') {
-        toggleBtn.style.display = 'inline-flex';
-        toggleBtn.onclick = () => {
-            // 点击时展开面板，并清空输入
-            const userIdInput = document.getElementById('admin-new-user-id');
-            const passwordInput = document.getElementById('admin-new-user-password');
-            if (userIdInput) userIdInput.value = '';
-            if (passwordInput) passwordInput.value = '';
-            if (msgDiv) {
-                msgDiv.textContent = '';
-                msgDiv.style.color = '#6b7280';
-            }
-            adminPanel.style.display = 'block';
-            if (userIdInput) {
-                setTimeout(() => userIdInput.focus(), 50);
-            }
-        };
-        addBtn.onclick = handleAdminAddUser;
-        if (cancelBtn) {
-            cancelBtn.onclick = hideAdminPanel;
         }
     } else {
-        toggleBtn.style.display = 'none';
         adminPanel.style.display = 'none';
+        if (msgDiv) {
+            msgDiv.textContent = '';
+        }
     }
 }
 
@@ -329,13 +294,6 @@ async function handleAdminAddUser() {
             if (msgDiv) {
                 msgDiv.textContent = '用户添加成功';
                 msgDiv.style.color = '#166534';
-            }
-            // 添加成功后自动隐藏面板
-            const adminPanel = document.getElementById('admin-panel');
-            if (adminPanel) {
-                setTimeout(() => {
-                    adminPanel.style.display = 'none';
-                }, 500);
             }
         } else {
             if (msgDiv) {
