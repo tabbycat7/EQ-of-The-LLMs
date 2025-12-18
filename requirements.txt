@@ -14,3 +14,4 @@ aiofiles==23.2.1
 bcrypt==3.2.2
 pandas==2.1.4
 openpyxl==3.1.2
+itsdangerous==2.1.2
