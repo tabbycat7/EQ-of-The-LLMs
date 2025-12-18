@@ -92,7 +92,6 @@ class BattleEvaluation(Base):
     calibration = Column(Integer, nullable=True)  # 校准：1=符合要求，0=不符合要求
     differentiation = Column(Integer, nullable=True)  # 分化：1=符合要求，0=不符合要求
     regulation = Column(Integer, nullable=True)  # 调节：1=符合要求，0=不符合要求
-    rating = Column(Float, nullable=True)  # 该轮投票后模型的 rating 值
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

@@ -308,12 +308,9 @@ async def submit_evaluation(
     for model_type in ["model_a", "model_b"]:
         if model_type in evaluation_data:
             model_eval = evaluation_data[model_type]
-            # 根据model_type获取对应的模型ID
-            model_id = battle.model_a_id if model_type == "model_a" else battle.model_b_id
             eval_record = BattleEvaluation(
                 battle_id=battle.id,
                 model_type=model_type,
-                model_id=model_id,
                 perception=model_eval.get("perception"),
                 calibration=model_eval.get("calibration"),
                 differentiation=model_eval.get("differentiation"),
@@ -383,27 +380,6 @@ async def submit_vote(
         request.winner,
         source="battle",
     )
-    
-    # 更新 BattleEvaluation 记录中的 rating 值
-    result_a = await db.execute(
-        select(BattleEvaluation).where(
-            BattleEvaluation.battle_id == battle.id,
-            BattleEvaluation.model_type == "model_a"
-        )
-    )
-    eval_a = result_a.scalar_one_or_none()
-    if eval_a:
-        eval_a.rating = new_rating_a
-    
-    result_b = await db.execute(
-        select(BattleEvaluation).where(
-            BattleEvaluation.battle_id == battle.id,
-            BattleEvaluation.model_type == "model_b"
-        )
-    )
-    eval_b = result_b.scalar_one_or_none()
-    if eval_b:
-        eval_b.rating = new_rating_b
     
     await db.commit()
     

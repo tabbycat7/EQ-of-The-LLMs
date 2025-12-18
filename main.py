@@ -3,10 +3,17 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from contextlib import asynccontextmanager
+import os
+import secrets
 
 from api import battle_router, chat_router, leaderboard_router
+from api.auth import router as auth_router
 from models.database import init_db
+
+# 使用环境变量或生成固定的secret key用于session
+SESSION_SECRET_KEY = os.getenv("SESSION_SECRET_KEY", "lmarena-session-secret-key-change-in-production")
 
 
 @asynccontextmanager
@@ -38,6 +45,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 配置 Session 中间件（需要在CORS之后，因为需要处理cookies）
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SESSION_SECRET_KEY,
+    max_age=86400 * 30,  # 30天
+    same_site="lax"
+)
+
 # 挂载静态文件
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -45,6 +60,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 # 注册 API 路由
+app.include_router(auth_router)
 app.include_router(battle_router)
 app.include_router(chat_router)
 app.include_router(leaderboard_router)

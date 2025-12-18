@@ -106,10 +106,7 @@ class RatingService:
             update_data_a["wins"] = (model_a_rating.wins or 0) + 1
         elif winner == "model_b":
             update_data_a["losses"] = (model_a_rating.losses or 0) + 1
-        elif winner == "both_bad":
-            # 两个都不好，不增加wins/losses/ties
-            pass
-        else:  # tie
+        else:
             update_data_a["ties"] = (model_a_rating.ties or 0) + 1
         
         await db.execute(
@@ -127,10 +124,7 @@ class RatingService:
             update_data_b["wins"] = (model_b_rating.wins or 0) + 1
         elif winner == "model_a":
             update_data_b["losses"] = (model_b_rating.losses or 0) + 1
-        elif winner == "both_bad":
-            # 两个都不好，不增加wins/losses/ties
-            pass
-        else:  # tie
+        else:
             update_data_b["ties"] = (model_b_rating.ties or 0) + 1
         
         await db.execute(
