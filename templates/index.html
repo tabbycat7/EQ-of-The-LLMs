@@ -9,7 +9,37 @@
 </head>
 
 <body>
-    <div class="app-shell">
+    <!-- 登录界面 -->
+    <div id="login-modal" class="login-modal" style="display: flex;">
+        <div class="login-container">
+            <div class="login-header">
+                <div class="brand">
+                    <div class="brand-icon">🤖</div>
+                    <div class="brand-text">
+                        <div class="brand-title">LMArena</div>
+                        <div class="brand-subtitle">AI 模型对战评测平台</div>
+                    </div>
+                </div>
+            </div>
+            <div class="login-form">
+                <h2>用户登录</h2>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="login-user-id">用户ID</label>
+                        <input type="text" id="login-user-id" placeholder="请输入用户ID" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">密码</label>
+                        <input type="password" id="login-password" placeholder="请输入密码" required autocomplete="current-password">
+                    </div>
+                    <div id="login-error" class="error-message" style="display: none;"></div>
+                    <button type="submit" class="primary-btn" id="login-submit-btn">登录</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-shell" id="app-shell" style="display: none;">
         <!-- ChatGPT 风格侧边栏 -->
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -27,11 +57,11 @@
                     <span class="nav-icon">⚔️</span>
                     <span class="nav-label">匿名对战</span>
                 </button>
-                <button class="mode-btn nav-btn" data-mode="sidebyside">
+                <button class="mode-btn nav-btn" data-mode="sidebyside" style="display: none;">
                     <span class="nav-icon">📊</span>
                     <span class="nav-label">并排对比</span>
                 </button>
-                <button class="mode-btn nav-btn" data-mode="leaderboard">
+                <button class="mode-btn nav-btn" data-mode="leaderboard" style="display: none;">
                     <span class="nav-icon">🏆</span>
                     <span class="nav-label">排行榜</span>
                 </button>
@@ -39,6 +69,10 @@
 
             <div class="sidebar-footer">
                 <div class="sidebar-note">提示：仅 Battle 投票计入积分</div>
+                <button id="logout-btn" class="logout-btn" title="退出登录">
+                    <span class="logout-icon">🚪</span>
+                    <span class="logout-label">退出登录</span>
+                </button>
                 <div class="sidebar-copy">© 2024 LMArena</div>
             </div>
         </aside>
@@ -64,24 +98,8 @@
                     </div>
 
                     <div id="battle-chat" class="chat-view" style="display: none;">
-                        <div class="messages">
-                            <div id="battle-user-msg" class="message user" style="display: none;"></div>
-                        </div>
-
-                        <div class="responses-grid">
-                            <div class="response-box">
-                                <div class="response-header">模型 A</div>
-                                <div id="response-a" class="response-content">
-                                    <div class="empty-state">等待回复...</div>
-                                </div>
-                            </div>
-                            <div class="response-box">
-                                <div class="response-header">模型 B</div>
-                                <div id="response-b" class="response-content">
-                                    <div class="empty-state">等待回复...</div>
-                                </div>
-                            </div>
-                        </div>
+                        <!-- 多轮对话容器：每轮包含「用户问题 + 模型 A / 模型 B 回答」 -->
+                        <div id="battle-responses" class="responses-list"></div>
 
                         <div id="voting-section" class="voting-section" style="display: none;">
                             <h3>选择更好的回答：</h3>
@@ -89,23 +107,14 @@
                                 <button class="vote-btn battle-vote-btn" data-winner="model_a">模型 A 更好</button>
                                 <button class="vote-btn battle-vote-btn" data-winner="tie">两者相当</button>
                                 <button class="vote-btn battle-vote-btn" data-winner="model_b">模型 B 更好</button>
+                                <button class="vote-btn battle-vote-btn" data-winner="both_bad">两个都不好</button>
                             </div>
                         </div>
 
                         <div id="reveal-section" class="reveal-section" style="display: none;">
                             <div class="reveal-info">
-                                <h3>模型揭晓</h3>
-                                <div class="reveal-grid">
-                                    <div class="reveal-item">
-                                        <span class="reveal-label">模型 A</span>
-                                        <span id="reveal-model-a" class="reveal-value"></span>
-                                    </div>
-                                    <div class="reveal-item">
-                                        <span class="reveal-label">模型 B</span>
-                                        <span id="reveal-model-b" class="reveal-value"></span>
-                                    </div>
-                                </div>
                                 <button id="new-battle-btn" class="primary-btn ghost">开始新对战</button>
+                                <button id="continue-battle-btn" class="secondary-btn ghost">继续使用当前模型进行对战</button>
                             </div>
                         </div>
 
@@ -125,7 +134,7 @@
                 </section>
 
                 <!-- 并排对比模式 -->
-                <section id="sidebyside-mode" class="mode-content">
+                <section id="sidebyside-mode" class="mode-content" style="display: none;">
                     <div class="mode-header">
                         <div class="mode-title">
                             <h2>并排对比</h2>
@@ -193,7 +202,7 @@
                 </section>
 
                 <!-- 排行榜模式 -->
-                <section id="leaderboard-mode" class="mode-content">
+                <section id="leaderboard-mode" class="mode-content" style="display: none;">
                     <div class="mode-header">
                         <div class="mode-title">
                             <h2>排行榜</h2>

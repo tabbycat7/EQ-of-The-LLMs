@@ -1,13 +1,14 @@
 """Chat 聊天模式 API（仅 Side-by-Side 对比模式）"""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel, ConfigDict
 from typing import List, Dict, Optional
 
 from models.database import get_db
-from models.schemas import ChatSession, ModelRating
+from models.schemas import ChatSession, ModelRating, SideBySideVote, User
 from services.model_service import ModelService
+from api.auth import get_current_user
 import config
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -76,12 +77,27 @@ async def get_models():
 @router.post("/sidebyside", response_model=SideBySideResponse)
 async def side_by_side_chat(
     request: SideBySideRequest,
+    req: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """
     并排对比模式
     同时查看两个模型的回答（非匿名）
     """
+    # 获取当前登录用户并更新提问次数
+    current_user_id = None
+    try:
+        current_user_id = get_current_user(req)
+        # 更新用户提问次数
+        result = await db.execute(select(User).where(User.id == current_user_id))
+        user = result.scalar_one_or_none()
+        if user:
+            user.question_count = (user.question_count or 0) + 1
+            await db.commit()
+    except HTTPException:
+        # 如果未登录，继续执行但不更新提问次数
+        pass
+    
     # 验证模型是否存在
     model_a_info = model_service.get_model_info(request.model_a_id)
     model_b_info = model_service.get_model_info(request.model_b_id)
@@ -99,8 +115,14 @@ async def side_by_side_chat(
         session = result.scalar_one_or_none()
         if not session:
             raise HTTPException(status_code=404, detail="会话不存在")
+        
+        # 验证会话是否属于当前用户（如果用户已登录）
+        if current_user_id is not None:
+            if session.user_id != current_user_id:
+                raise HTTPException(status_code=403, detail="无权访问此会话")
     else:
         session = ChatSession(
+            user_id=current_user_id,
             mode="sidebyside",
             model_ids=[request.model_a_id, request.model_b_id],
             conversation=[]
@@ -151,7 +173,7 @@ async def side_by_side_vote(
 ):
     """
     并排对比模式下的投票
-    仅收集用户偏好，不计入评分（不更新 ELO）
+    记录每一次投票，但不更新评分（不计入积分）
     """
     if request.winner not in ["model_a", "model_b", "tie"]:
         raise HTTPException(status_code=400, detail="无效的投票选项")
@@ -164,6 +186,22 @@ async def side_by_side_vote(
         raise HTTPException(status_code=404, detail=f"模型 {request.model_a_id} 不存在")
     if not model_b_info:
         raise HTTPException(status_code=404, detail=f"模型 {request.model_b_id} 不存在")
+
+    # 记录投票（仅作为日志，不影响评分）
+    session_obj = None
+    if request.session_id:
+        result_session = await db.execute(
+            select(ChatSession).where(ChatSession.id == request.session_id)
+        )
+        session_obj = result_session.scalar_one_or_none()
+
+    side_vote = SideBySideVote(
+        session_id=session_obj.id if session_obj else None,
+        model_a_id=request.model_a_id,
+        model_b_id=request.model_b_id,
+        winner=request.winner,
+    )
+    db.add(side_vote)
 
     # Side-by-Side 不计入评分：读取当前评分（用于展示，不做更新）
     result_a = await db.execute(
