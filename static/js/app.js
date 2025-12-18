@@ -52,10 +52,32 @@ function showLoginModal() {
     if (loginModal) loginModal.style.display = 'flex';
     if (appShell) appShell.style.display = 'none';
 
+    // 重置登录表单：清空输入框和错误信息，重置按钮状态
+    const userIdInput = document.getElementById('login-user-id');
+    const passwordInput = document.getElementById('login-password');
+    const submitBtn = document.getElementById('login-submit-btn');
+    const errorDiv = document.getElementById('login-error');
+    
+    if (userIdInput) userIdInput.value = '';
+    if (passwordInput) passwordInput.value = '';
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '登录';
+    }
+    if (errorDiv) {
+        errorDiv.textContent = '';
+        errorDiv.style.display = 'none';
+    }
+
     // 设置登录表单提交事件
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.onsubmit = handleLogin;
+    }
+    
+    // 聚焦到用户ID输入框，方便用户输入
+    if (userIdInput) {
+        setTimeout(() => userIdInput.focus(), 100);
     }
 }
 
