@@ -277,10 +277,14 @@ function setupBattleMode() {
     }
     sendBtn.addEventListener('click', sendBattleMessage);
 
-    input.addEventListener('keypress', (e) => {
+    input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            sendBattleMessage();
+            // 检查按钮是否已禁用，避免重复提交
+            const sendBtn = document.getElementById('battle-send-btn');
+            if (sendBtn && !sendBtn.disabled) {
+                sendBattleMessage();
+            }
         }
     });
 
@@ -294,7 +298,8 @@ async function startBattle() {
         showLoading('battle');
 
         const response = await fetch('/api/battle/start', {
-            method: 'POST'
+            method: 'POST',
+            credentials: 'include'  // 确保包含 cookies（用于 session 认证）
         });
 
         if (!response.ok) throw new Error('启动对战失败');
@@ -329,12 +334,23 @@ async function sendBattleMessage() {
     const input = document.getElementById('battle-input');
     const message = input.value.trim();
 
-    if (!message) return;
+    if (!message) {
+        // 如果消息为空，给用户一个视觉反馈
+        input.focus();
+        return;
+    }
 
     const sendBtn = document.getElementById('battle-send-btn');
+    // 如果按钮已经被禁用，说明正在发送中，避免重复提交
+    if (sendBtn && sendBtn.disabled) {
+        return;
+    }
     sendBtn.disabled = true;
     // 发送后隐藏输入区域，直到本轮投票完成
     if (battleInputSection) battleInputSection.style.display = 'none';
+    
+    // 调试信息：记录当前 session_id
+    console.log('发送消息，当前 battleSessionId:', battleSessionId);
 
     try {
         // 在多轮对话容器中，为本轮新增一个「用户问题 + 模型 A / 模型 B」区域
@@ -448,13 +464,39 @@ async function sendBattleMessage() {
         const response = await fetch('/api/battle/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',  // 确保包含 cookies（用于 session 认证）
             body: JSON.stringify({
                 session_id: battleSessionId,
                 message: message
             })
         });
 
-        if (!response.ok) throw new Error('发送消息失败');
+        if (!response.ok) {
+            let errorMessage = '发送消息失败';
+            try {
+                const errorData = await response.json();
+                if (errorData.detail) {
+                    errorMessage = `发送消息失败: ${errorData.detail}`;
+                    // 如果是权限错误，提示用户可能需要重新登录
+                    if (response.status === 403) {
+                        errorMessage += '（可能是权限问题，请尝试刷新页面）';
+                    }
+                    // 如果是对战会话不存在，清空 session_id 以便重新创建
+                    if (response.status === 404 && errorData.detail.includes('不存在')) {
+                        console.warn('对战会话不存在，清空 session_id');
+                        battleSessionId = null;
+                    }
+                }
+            } catch (e) {
+                // 如果响应不是 JSON，使用默认错误信息
+                errorMessage = `发送消息失败 (HTTP ${response.status})`;
+                // 如果是网络错误，提示检查后端服务
+                if (response.status === 0 || response.status >= 500) {
+                    errorMessage += '（可能是服务器错误，请稍后重试）';
+                }
+            }
+            throw new Error(errorMessage);
+        }
 
         // 非流式：一次性获取完整 JSON
         const data = await response.json();
@@ -490,9 +532,14 @@ async function sendBattleMessage() {
 
     } catch (error) {
         console.error('发送消息失败:', error);
-        showError('发送消息失败，请重试');
+        const errorMessage = error.message || '发送消息失败，请重试';
+        showError(errorMessage);
         sendBtn.disabled = false;
         if (battleInputSection) battleInputSection.style.display = 'block';
+        // 如果错误是由于网络问题（如无法连接到服务器），提示用户检查后端服务
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+            console.error('网络错误：可能后端服务未启动或无法访问');
+        }
     }
 }
 
@@ -561,6 +608,7 @@ async function submitEvaluation(roundEl, evaluationData) {
         const response = await fetch('/api/battle/evaluation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',  // 确保包含 cookies（用于 session 认证）
             body: JSON.stringify({
                 session_id: battleSessionId,
                 evaluation: evaluationData
@@ -591,6 +639,7 @@ async function submitVote(winner) {
         const response = await fetch('/api/battle/vote', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',  // 确保包含 cookies（用于 session 认证）
             body: JSON.stringify({
                 session_id: battleSessionId,
                 winner: winner
@@ -634,6 +683,7 @@ async function continueCurrentBattle() {
         const resp = await fetch('/api/battle/continue', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',  // 确保包含 cookies（用于 session 认证）
             body: JSON.stringify({ session_id: battleSessionId }),
         });
 
@@ -675,10 +725,14 @@ function setupSideBySideMode() {
 
     sendBtn.addEventListener('click', sendSideBySideMessage);
 
-    input.addEventListener('keypress', (e) => {
+    input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            sendSideBySideMessage();
+            // 检查按钮是否已禁用，避免重复提交
+            const sendBtn = document.getElementById('sidebyside-send-btn');
+            if (sendBtn && !sendBtn.disabled) {
+                sendSideBySideMessage();
+            }
         }
     });
 
@@ -722,13 +776,21 @@ async function sendSideBySideMessage() {
     const input = document.getElementById('sidebyside-input');
     const message = input.value.trim();
 
-    if (!message) return;
-
-    const modelAId = document.getElementById('sidebyside-model-a').value;
-    const modelBId = document.getElementById('sidebyside-model-b').value;
+    if (!message) {
+        // 如果消息为空，给用户一个视觉反馈
+        input.focus();
+        return;
+    }
 
     const sendBtn = document.getElementById('sidebyside-send-btn');
+    // 如果按钮已经被禁用，说明正在发送中，避免重复提交
+    if (sendBtn && sendBtn.disabled) {
+        return;
+    }
     sendBtn.disabled = true;
+    
+    const modelAId = document.getElementById('sidebyside-model-a').value;
+    const modelBId = document.getElementById('sidebyside-model-b').value;
     // 发送后隐藏输入区域，直到新一轮开启
     if (sideBySideInputSection) sideBySideInputSection.style.display = 'none';
     const newRound = document.getElementById('sidebyside-new-round');

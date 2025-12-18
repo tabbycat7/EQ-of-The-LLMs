@@ -291,9 +291,17 @@ async def battle_chat(
 @router.post("/evaluation", response_model=EvaluationResponse)
 async def submit_evaluation(
     request: EvaluationRequest,
+    req: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """提交测评维度数据"""
+    # 获取当前登录用户ID
+    current_user_id = None
+    try:
+        current_user_id = get_current_user(req)
+    except HTTPException:
+        pass  # 如果未登录，user_id为None
+    
     # 获取对战会话
     result = await db.execute(
         select(Battle).where(Battle.id == request.session_id)
@@ -302,6 +310,11 @@ async def submit_evaluation(
     
     if not battle:
         raise HTTPException(status_code=404, detail="对战会话不存在")
+    
+    # 验证会话是否属于当前用户（如果用户已登录）
+    if current_user_id is not None:
+        if battle.user_id != current_user_id:
+            raise HTTPException(status_code=403, detail="无权访问此对战会话")
     
     # 保存测评维度数据
     evaluation_data = request.evaluation
@@ -332,12 +345,20 @@ async def submit_evaluation(
 @router.post("/vote", response_model=VoteResponse)
 async def submit_vote(
     request: VoteRequest,
+    req: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """
     提交投票并更新积分制评分
     投票后揭示模型身份
     """
+    # 获取当前登录用户ID
+    current_user_id = None
+    try:
+        current_user_id = get_current_user(req)
+    except HTTPException:
+        pass  # 如果未登录，user_id为None
+    
     # 获取对战会话
     result = await db.execute(
         select(Battle).where(Battle.id == request.session_id)
@@ -346,6 +367,11 @@ async def submit_vote(
     
     if not battle:
         raise HTTPException(status_code=404, detail="对战会话不存在")
+    
+    # 验证会话是否属于当前用户（如果用户已登录）
+    if current_user_id is not None:
+        if battle.user_id != current_user_id:
+            raise HTTPException(status_code=403, detail="无权访问此对战会话")
     
     if battle.winner:
         raise HTTPException(status_code=400, detail="该对战已经投过票了")
@@ -426,12 +452,20 @@ async def submit_vote(
 @router.get("/reveal/{session_id}", response_model=RevealResponse)
 async def reveal_models(
     session_id: str,
+    req: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """
     揭示对战中的模型身份
     只有投票后才能查看
     """
+    # 获取当前登录用户ID
+    current_user_id = None
+    try:
+        current_user_id = get_current_user(req)
+    except HTTPException:
+        pass  # 如果未登录，user_id为None
+    
     result = await db.execute(
         select(Battle).where(Battle.id == session_id)
     )
@@ -439,6 +473,11 @@ async def reveal_models(
     
     if not battle:
         raise HTTPException(status_code=404, detail="对战会话不存在")
+    
+    # 验证会话是否属于当前用户（如果用户已登录）
+    if current_user_id is not None:
+        if battle.user_id != current_user_id:
+            raise HTTPException(status_code=403, detail="无权访问此对战会话")
     
     if not battle.is_revealed:
         raise HTTPException(status_code=403, detail="请先投票后再查看模型身份")
