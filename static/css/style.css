@@ -724,6 +724,38 @@ body {
     gap: 6px;
 }
 
+.logout-btn {
+    width: 100%;
+    padding: 10px 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+    margin: 4px 0;
+}
+
+.logout-btn:hover {
+    background: var(--bg);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.logout-icon {
+    font-size: 16px;
+}
+
+.logout-label {
+    flex: 1;
+    text-align: left;
+}
+
 /* 主内容区 */
 .main {
     flex: 1;
@@ -1414,4 +1446,160 @@ body {
         transition: none !important;
         scroll-behavior: auto !important;
     }
+}
+
+/* 登录界面样式 */
+.login-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.login-container {
+    background: var(--panel);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 40px;
+    width: 100%;
+    max-width: 420px;
+    margin: 20px;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.login-header .brand {
+    justify-content: center;
+}
+
+.login-form h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    text-align: center;
+    color: var(--text);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text);
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 16px;
+    font-family: inherit;
+    transition: border-color 0.2s;
+    background: #fff;
+    color: var(--text);
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.error-message {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.login-form .primary-btn {
+    width: 100%;
+    margin-top: 8px;
+}
+
+/* 测评维度样式 */
+.evaluation-section {
+    margin-top: 16px;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.evaluation-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 12px;
+}
+
+.evaluation-dimensions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.evaluation-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.evaluation-item label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    min-width: 50px;
+}
+
+.evaluation-options {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+}
+
+.eval-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    background: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    color: var(--text);
+}
+
+.eval-btn:hover {
+    background: #f3f4f6;
+    border-color: var(--primary);
+}
+
+.eval-btn.selected {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+
+.evaluation-submit-section {
+    margin-top: 16px;
+    text-align: center;
+    padding: 16px;
 }

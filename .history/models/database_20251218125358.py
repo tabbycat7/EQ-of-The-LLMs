@@ -100,8 +100,7 @@ async def init_db():
         # 为battle_evaluations表添加rating列（适用于所有数据库类型）
         try:
             # 对于不同的数据库类型，使用不同的语法
-            database_url_str = str(engine.url)
-            if "sqlite" in database_url_str:
+            if str(engine.url).startswith("sqlite"):
                 await conn.execute(text("ALTER TABLE battle_evaluations ADD COLUMN rating REAL"))
             else:
                 await conn.execute(text("ALTER TABLE battle_evaluations ADD COLUMN rating FLOAT"))

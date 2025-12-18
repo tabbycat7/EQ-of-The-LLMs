@@ -1,5 +1,5 @@
 """Battle 对战模式 API"""
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel, ConfigDict
@@ -7,10 +7,9 @@ from typing import Optional, List
 import random
 
 from models.database import get_db
-from models.schemas import Battle, Vote, User, BattleEvaluation
+from models.schemas import Battle, Vote
 from services.model_service import ModelService
 from services.rating_service import RatingService
-from api.auth import get_current_user
 import config
 
 router = APIRouter(prefix="/api/battle", tags=["battle"])
@@ -36,22 +35,10 @@ class ChatResponse(BaseModel):
     response_b: str
 
 
-class EvaluationRequest(BaseModel):
-    """测评维度请求"""
-    session_id: str
-    evaluation: dict  # {"model_a": {"perception": 1, "calibration": 1, ...}, "model_b": {...}}
-
-
-class EvaluationResponse(BaseModel):
-    """测评维度响应"""
-    success: bool
-    message: str
-
-
 class VoteRequest(BaseModel):
     """投票请求"""
     session_id: str
-    winner: str  # "model_a", "model_b", "tie", "both_bad"
+    winner: str  # "model_a", "model_b", "tie"
 
 
 class VoteResponse(BaseModel):
@@ -105,7 +92,6 @@ async def start_battle(db: AsyncSession = Depends(get_db)):
 @router.post("/continue", response_model=ContinueBattleResponse)
 async def continue_battle(
     request: ContinueBattleRequest,
-    req: Request,
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -114,13 +100,6 @@ async def continue_battle(
     - 复制历史对话作为新对战的初始 conversation
     - 返回一个新的 session_id，避免重复投票报错
     """
-    # 获取当前登录用户ID
-    current_user_id = None
-    try:
-        current_user_id = get_current_user(req)
-    except HTTPException:
-        pass  # 如果未登录，user_id为None
-    
     # 查找原对战
     result = await db.execute(
         select(Battle).where(Battle.id == request.session_id)
@@ -129,15 +108,9 @@ async def continue_battle(
 
     if not old_battle:
         raise HTTPException(status_code=404, detail="原对战会话不存在")
-    
-    # 验证原对战会话是否属于当前用户（如果用户已登录）
-    if current_user_id is not None:
-        if old_battle.user_id != current_user_id:
-            raise HTTPException(status_code=403, detail="无权访问此对战会话")
 
     # 创建新的对战会话，复用模型与历史对话
     new_battle = Battle(
-        user_id=current_user_id,
         model_a_id=old_battle.model_a_id,
         model_b_id=old_battle.model_b_id,
         conversation=old_battle.conversation or [],
@@ -157,27 +130,12 @@ async def continue_battle(
 @router.post("/chat", response_model=ChatResponse)
 async def battle_chat(
     request: ChatRequest,
-    req: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """
     在对战模式下发送消息
     两个模型一次性回复（非流式）
     """
-    # 获取当前登录用户并更新提问次数
-    current_user_id = None
-    try:
-        current_user_id = get_current_user(req)
-        # 更新用户提问次数
-        result = await db.execute(select(User).where(User.id == current_user_id))
-        user = result.scalar_one_or_none()
-        if user:
-            user.question_count = (user.question_count or 0) + 1
-            await db.commit()
-    except HTTPException:
-        # 如果未登录，继续执行但不更新提问次数
-        pass
-    
     # 如果没有 session_id，说明是本轮首次提问：此时创建对战会话
     if not request.session_id:
         # 基于模型 id 去重后，随机选择两个不同的模型
@@ -193,7 +151,6 @@ async def battle_chat(
         model_a, model_b = random.sample(unique_models, 2)
 
         battle = Battle(
-            user_id=current_user_id,
             model_a_id=model_a["id"],
             model_b_id=model_b["id"],
             conversation=[],
@@ -211,11 +168,6 @@ async def battle_chat(
 
         if not battle:
             raise HTTPException(status_code=404, detail="对战会话不存在")
-        
-        # 验证会话是否属于当前用户（如果用户已登录）
-        if current_user_id is not None:
-            if battle.user_id != current_user_id:
-                raise HTTPException(status_code=403, detail="无权访问此对战会话")
 
     # 1) 读取已保存的历史对话（用于持久化）
     history = battle.conversation.copy() if battle.conversation else []
@@ -237,7 +189,7 @@ async def battle_chat(
                 {
                     "role": "system",
                     "content": (
-                        "你是一个匿名的大语言模型，用于参与评测。\n"
+                        "你是一个匿名的大语言模型，用于参与 A/B 对战评测。\n"
                         "要求：\n"
                         "1. 不要透露自己的真实模型名称、供应商（例如不要说“我是 Claude / GPT / DeepSeek 等”）。\n"
                         "2. 不要做长篇的自我介绍，直接高质量回答用户当前的问题即可。\n"
@@ -288,47 +240,6 @@ async def battle_chat(
     )
 
 
-@router.post("/evaluation", response_model=EvaluationResponse)
-async def submit_evaluation(
-    request: EvaluationRequest,
-    db: AsyncSession = Depends(get_db)
-):
-    """提交测评维度数据"""
-    # 获取对战会话
-    result = await db.execute(
-        select(Battle).where(Battle.id == request.session_id)
-    )
-    battle = result.scalar_one_or_none()
-    
-    if not battle:
-        raise HTTPException(status_code=404, detail="对战会话不存在")
-    
-    # 保存测评维度数据
-    evaluation_data = request.evaluation
-    for model_type in ["model_a", "model_b"]:
-        if model_type in evaluation_data:
-            model_eval = evaluation_data[model_type]
-            # 根据model_type获取对应的模型ID
-            model_id = battle.model_a_id if model_type == "model_a" else battle.model_b_id
-            eval_record = BattleEvaluation(
-                battle_id=battle.id,
-                model_type=model_type,
-                model_id=model_id,
-                perception=model_eval.get("perception"),
-                calibration=model_eval.get("calibration"),
-                differentiation=model_eval.get("differentiation"),
-                regulation=model_eval.get("regulation")
-            )
-            db.add(eval_record)
-    
-    await db.commit()
-    
-    return EvaluationResponse(
-        success=True,
-        message="测评维度提交成功"
-    )
-
-
 @router.post("/vote", response_model=VoteResponse)
 async def submit_vote(
     request: VoteRequest,
@@ -350,7 +261,7 @@ async def submit_vote(
     if battle.winner:
         raise HTTPException(status_code=400, detail="该对战已经投过票了")
     
-    if request.winner not in ["model_a", "model_b", "tie", "both_bad"]:
+    if request.winner not in ["model_a", "model_b", "tie"]:
         raise HTTPException(status_code=400, detail="无效的投票选项")
     
     # 更新对战结果
@@ -383,27 +294,6 @@ async def submit_vote(
         request.winner,
         source="battle",
     )
-    
-    # 更新 BattleEvaluation 记录中的 rating 值
-    result_a = await db.execute(
-        select(BattleEvaluation).where(
-            BattleEvaluation.battle_id == battle.id,
-            BattleEvaluation.model_type == "model_a"
-        )
-    )
-    eval_a = result_a.scalar_one_or_none()
-    if eval_a:
-        eval_a.rating = new_rating_a
-    
-    result_b = await db.execute(
-        select(BattleEvaluation).where(
-            BattleEvaluation.battle_id == battle.id,
-            BattleEvaluation.model_type == "model_b"
-        )
-    )
-    eval_b = result_b.scalar_one_or_none()
-    if eval_b:
-        eval_b.rating = new_rating_b
     
     await db.commit()
     

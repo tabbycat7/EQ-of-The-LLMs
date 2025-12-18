@@ -7,7 +7,7 @@ from typing import Optional, List
 import random
 
 from models.database import get_db
-from models.schemas import Battle, Vote, User, BattleEvaluation
+from models.schemas import Battle, Vote, User
 from services.model_service import ModelService
 from services.rating_service import RatingService
 from api.auth import get_current_user
@@ -36,22 +36,10 @@ class ChatResponse(BaseModel):
     response_b: str
 
 
-class EvaluationRequest(BaseModel):
-    """测评维度请求"""
-    session_id: str
-    evaluation: dict  # {"model_a": {"perception": 1, "calibration": 1, ...}, "model_b": {...}}
-
-
-class EvaluationResponse(BaseModel):
-    """测评维度响应"""
-    success: bool
-    message: str
-
-
 class VoteRequest(BaseModel):
     """投票请求"""
     session_id: str
-    winner: str  # "model_a", "model_b", "tie", "both_bad"
+    winner: str  # "model_a", "model_b", "tie"
 
 
 class VoteResponse(BaseModel):
@@ -288,47 +276,6 @@ async def battle_chat(
     )
 
 
-@router.post("/evaluation", response_model=EvaluationResponse)
-async def submit_evaluation(
-    request: EvaluationRequest,
-    db: AsyncSession = Depends(get_db)
-):
-    """提交测评维度数据"""
-    # 获取对战会话
-    result = await db.execute(
-        select(Battle).where(Battle.id == request.session_id)
-    )
-    battle = result.scalar_one_or_none()
-    
-    if not battle:
-        raise HTTPException(status_code=404, detail="对战会话不存在")
-    
-    # 保存测评维度数据
-    evaluation_data = request.evaluation
-    for model_type in ["model_a", "model_b"]:
-        if model_type in evaluation_data:
-            model_eval = evaluation_data[model_type]
-            # 根据model_type获取对应的模型ID
-            model_id = battle.model_a_id if model_type == "model_a" else battle.model_b_id
-            eval_record = BattleEvaluation(
-                battle_id=battle.id,
-                model_type=model_type,
-                model_id=model_id,
-                perception=model_eval.get("perception"),
-                calibration=model_eval.get("calibration"),
-                differentiation=model_eval.get("differentiation"),
-                regulation=model_eval.get("regulation")
-            )
-            db.add(eval_record)
-    
-    await db.commit()
-    
-    return EvaluationResponse(
-        success=True,
-        message="测评维度提交成功"
-    )
-
-
 @router.post("/vote", response_model=VoteResponse)
 async def submit_vote(
     request: VoteRequest,
@@ -350,7 +297,7 @@ async def submit_vote(
     if battle.winner:
         raise HTTPException(status_code=400, detail="该对战已经投过票了")
     
-    if request.winner not in ["model_a", "model_b", "tie", "both_bad"]:
+    if request.winner not in ["model_a", "model_b", "tie"]:
         raise HTTPException(status_code=400, detail="无效的投票选项")
     
     # 更新对战结果
@@ -383,27 +330,6 @@ async def submit_vote(
         request.winner,
         source="battle",
     )
-    
-    # 更新 BattleEvaluation 记录中的 rating 值
-    result_a = await db.execute(
-        select(BattleEvaluation).where(
-            BattleEvaluation.battle_id == battle.id,
-            BattleEvaluation.model_type == "model_a"
-        )
-    )
-    eval_a = result_a.scalar_one_or_none()
-    if eval_a:
-        eval_a.rating = new_rating_a
-    
-    result_b = await db.execute(
-        select(BattleEvaluation).where(
-            BattleEvaluation.battle_id == battle.id,
-            BattleEvaluation.model_type == "model_b"
-        )
-    )
-    eval_b = result_b.scalar_one_or_none()
-    if eval_b:
-        eval_b.rating = new_rating_b
     
     await db.commit()
     

@@ -431,7 +431,7 @@ async function sendBattleMessage() {
                 </div>
             </div>
             <div class="evaluation-submit-section" style="display: none;">
-                <button class="submit-evaluation-btn primary-btn">提交测评</button>
+                <button id="submit-evaluation-btn" class="primary-btn">提交测评</button>
             </div>
         `;
         battleResponses.appendChild(roundEl);
@@ -493,96 +493,6 @@ async function sendBattleMessage() {
         showError('发送消息失败，请重试');
         sendBtn.disabled = false;
         if (battleInputSection) battleInputSection.style.display = 'block';
-    }
-}
-
-// 设置测评维度选择按钮
-function setupEvaluationButtons(roundEl) {
-    const evalButtons = roundEl.querySelectorAll('.eval-btn');
-    const submitBtn = roundEl.querySelector('.submit-evaluation-btn');
-
-    // 存储当前轮的测评数据
-    const evaluationData = {
-        model_a: { perception: null, calibration: null, differentiation: null, regulation: null },
-        model_b: { perception: null, calibration: null, differentiation: null, regulation: null }
-    };
-
-    evalButtons.forEach(btn => {
-        btn.addEventListener('click', function () {
-            const model = this.closest('.evaluation-section').dataset.model;
-            const dimension = this.dataset.dimension;
-            const value = parseInt(this.dataset.value);
-
-            // 更新数据
-            evaluationData[model][dimension] = value;
-
-            // 更新按钮样式：同维度其他按钮取消选中，当前按钮选中
-            const dimensionGroup = this.closest('.evaluation-item');
-            const allButtonsInGroup = dimensionGroup.querySelectorAll('.eval-btn');
-            allButtonsInGroup.forEach(b => b.classList.remove('selected'));
-            this.classList.add('selected');
-
-            // 检查是否所有维度都已选择
-            const allSelected = checkAllDimensionsSelected(roundEl, evaluationData);
-            if (submitBtn) {
-                submitBtn.disabled = !allSelected;
-            }
-        });
-    });
-
-    // 提交测评按钮
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.addEventListener('click', async () => {
-            await submitEvaluation(roundEl, evaluationData);
-        });
-    }
-}
-
-// 检查是否所有维度都已选择
-function checkAllDimensionsSelected(roundEl, evaluationData) {
-    const dimensions = ['perception', 'calibration', 'differentiation', 'regulation'];
-    for (const model of ['model_a', 'model_b']) {
-        for (const dim of dimensions) {
-            if (evaluationData[model][dim] === null) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-// 提交测评维度
-async function submitEvaluation(roundEl, evaluationData) {
-    try {
-        const submitBtn = roundEl.querySelector('.submit-evaluation-btn');
-        if (submitBtn) submitBtn.disabled = true;
-
-        const response = await fetch('/api/battle/evaluation', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                session_id: battleSessionId,
-                evaluation: evaluationData
-            })
-        });
-
-        if (!response.ok) throw new Error('提交测评失败');
-
-        // 隐藏测评区域
-        const evalSections = roundEl.querySelectorAll('.evaluation-section');
-        evalSections.forEach(section => section.style.display = 'none');
-        const submitSection = roundEl.querySelector('.evaluation-submit-section');
-        if (submitSection) submitSection.style.display = 'none';
-
-        // 显示投票区域
-        document.getElementById('voting-section').style.display = 'block';
-
-    } catch (error) {
-        console.error('提交测评失败:', error);
-        showError('提交测评失败，请重试');
-        const submitBtn = roundEl.querySelector('.submit-evaluation-btn');
-        if (submitBtn) submitBtn.disabled = false;
     }
 }
 
