@@ -498,10 +498,14 @@ async def get_battle_history(
         raise HTTPException(status_code=401, detail="请先登录")
     
     # 查询当前用户的所有对战记录，按创建时间倒序
+    # 过滤掉 winner 为 NULL 的记录（未完成投票的对战）
     from sqlalchemy import desc
     result = await db.execute(
         select(Battle)
-        .where(Battle.user_id == current_user_id)
+        .where(
+            Battle.user_id == current_user_id,
+            Battle.winner.isnot(None)
+        )
         .order_by(desc(Battle.created_at))
     )
     battles = result.scalars().all()
