@@ -1235,11 +1235,9 @@ function renderHistory(battles) {
                     <div class="history-stats">
                         <span>对话轮数：${conversationRounds}</span>
                     </div>
-                    ${battle.conversation && battle.conversation.length > 0 ? `
-                    <div class="history-conversation-preview">
-                        ${renderConversationPreview(battle.conversation, isRevealed)}
-                    </div>
-                    ` : '<div class="history-empty-conversation">暂无对话内容</div>'}
+                    ${battle.conversation && battle.conversation.length > 0 ? 
+                        renderConversationPreview(battle.conversation, isRevealed) : 
+                        '<div class="history-empty-conversation">暂无对话内容</div>'}
                 </div>
             </div>
         `;
@@ -1252,18 +1250,19 @@ function renderHistory(battles) {
 function renderConversationPreview(conversation, isRevealed) {
     if (!conversation || conversation.length === 0) return '';
 
-    // 只显示最近几轮对话作为预览
-    const previewRounds = Math.min(2, Math.floor(conversation.length / 3));
-    let html = '';
+    // 显示完整的对话记录
+    let html = '<div class="history-conversation-full">';
 
-    const startIndex = Math.max(0, conversation.length - previewRounds * 3);
-    for (let i = startIndex; i < conversation.length; i++) {
+    for (let i = 0; i < conversation.length; i++) {
         const msg = conversation[i];
         const role = msg.role || 'assistant';
         let content = msg.content || '';
 
         if (role === 'user') {
-            html += `<div class="history-msg user-msg">👤 用户：${escapeHtml(content.substring(0, 100))}${content.length > 100 ? '...' : ''}</div>`;
+            html += `<div class="history-msg user-msg">
+                <div class="history-msg-label">👤 用户</div>
+                <div class="history-msg-content">${escapeHtml(content)}</div>
+            </div>`;
         } else if (role === 'assistant') {
             // 解析 "[Model A]: ..." 或 "[Model B]: ..." 格式
             const modelAMatch = content.match(/^\[Model A\]:\s*(.+)/s);
@@ -1271,14 +1270,27 @@ function renderConversationPreview(conversation, isRevealed) {
 
             if (modelAMatch) {
                 const modelContent = modelAMatch[1].trim();
-                html += `<div class="history-msg model-a-msg">模型 A：${escapeHtml(modelContent.substring(0, 100))}${modelContent.length > 100 ? '...' : ''}</div>`;
+                html += `<div class="history-msg model-a-msg">
+                    <div class="history-msg-label">模型 A</div>
+                    <div class="history-msg-content">${escapeHtml(modelContent)}</div>
+                </div>`;
             } else if (modelBMatch) {
                 const modelContent = modelBMatch[1].trim();
-                html += `<div class="history-msg model-b-msg">模型 B：${escapeHtml(modelContent.substring(0, 100))}${modelContent.length > 100 ? '...' : ''}</div>`;
+                html += `<div class="history-msg model-b-msg">
+                    <div class="history-msg-label">模型 B</div>
+                    <div class="history-msg-content">${escapeHtml(modelContent)}</div>
+                </div>`;
+            } else {
+                // 如果没有匹配到格式，直接显示内容
+                html += `<div class="history-msg assistant-msg">
+                    <div class="history-msg-label">助手</div>
+                    <div class="history-msg-content">${escapeHtml(content)}</div>
+                </div>`;
             }
         }
     }
 
+    html += '</div>';
     return html;
 }
 

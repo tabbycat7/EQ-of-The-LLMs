@@ -1498,6 +1498,14 @@ body {
     overflow-y: auto;
 }
 
+.history-conversation-full {
+    background: var(--cg-surface-2);
+    border-radius: 8px;
+    padding: 16px;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
 .history-empty-conversation {
     color: var(--cg-muted);
     font-style: italic;
@@ -1507,30 +1515,70 @@ body {
 }
 
 .history-msg {
-    margin-bottom: 8px;
-    padding: 8px 12px;
-    border-radius: 6px;
+    margin-bottom: 12px;
+    padding: 12px;
+    border-radius: 8px;
     font-size: 14px;
-    line-height: 1.5;
+    line-height: 1.6;
+    border-left: 3px solid transparent;
+}
+
+.history-msg:last-child {
+    margin-bottom: 0;
+}
+
+.history-msg-label {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.history-msg-content {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .history-msg.user-msg {
     background: #e0f2fe;
     color: #0c4a6e;
+    border-left-color: #0284c7;
+}
+
+.history-msg.user-msg .history-msg-label {
+    color: #075985;
 }
 
 .history-msg.model-a-msg {
     background: #fce7f3;
     color: #831843;
+    border-left-color: #db2777;
+}
+
+.history-msg.model-a-msg .history-msg-label {
+    color: #9f1239;
 }
 
 .history-msg.model-b-msg {
     background: #f0fdf4;
     color: #14532d;
+    border-left-color: #22c55e;
 }
 
-.history-msg:last-child {
-    margin-bottom: 0;
+.history-msg.model-b-msg .history-msg-label {
+    color: #166534;
+}
+
+.history-msg.assistant-msg {
+    background: #f3f4f6;
+    color: #374151;
+    border-left-color: #6b7280;
+}
+
+.history-msg.assistant-msg .history-msg-label {
+    color: #4b5563;
 }
 
 /* Toast（替代 alert：更像 ChatGPT） */
