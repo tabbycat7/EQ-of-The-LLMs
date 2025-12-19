@@ -90,6 +90,33 @@ class ContinueBattleResponse(BaseModel):
     message: str
 
 
+class BattleHistoryItem(BaseModel):
+    """历史对战记录项"""
+    model_config = ConfigDict(protected_namespaces=())
+    
+    id: str
+    model_a_id: str
+    model_a_name: str
+    model_b_id: str
+    model_b_name: str
+    conversation: List[dict]
+    model_a_response: Optional[str]
+    model_b_response: Optional[str]
+    winner: Optional[str]
+    is_revealed: int
+    created_at: str
+    updated_at: Optional[str]
+
+
+class BattleHistoryResponse(BaseModel):
+    """历史对战列表响应"""
+    model_config = ConfigDict(protected_namespaces=())
+    
+    success: bool
+    battles: List[BattleHistoryItem]
+    total: int
+
+
 @router.post("/start", response_model=StartBattleResponse)
 async def start_battle(db: AsyncSession = Depends(get_db)):
     """
@@ -453,6 +480,57 @@ async def submit_vote(
         model_b_name=model_b_info["name"] if model_b_info else battle.model_b_id,
         new_rating_a=new_rating_a,
         new_rating_b=new_rating_b
+    )
+
+
+@router.get("/history", response_model=BattleHistoryResponse)
+async def get_battle_history(
+    req: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    获取当前用户的对战历史记录
+    """
+    # 获取当前登录用户ID
+    try:
+        current_user_id = get_current_user(req)
+    except HTTPException:
+        raise HTTPException(status_code=401, detail="请先登录")
+    
+    # 查询当前用户的所有对战记录，按创建时间倒序
+    from sqlalchemy import desc
+    result = await db.execute(
+        select(Battle)
+        .where(Battle.user_id == current_user_id)
+        .order_by(desc(Battle.created_at))
+    )
+    battles = result.scalars().all()
+    
+    # 转换为响应格式
+    battle_items = []
+    for battle in battles:
+        model_a_info = model_service.get_model_info(battle.model_a_id)
+        model_b_info = model_service.get_model_info(battle.model_b_id)
+        
+        battle_items.append(BattleHistoryItem(
+            id=battle.id,
+            model_a_id=battle.model_a_id,
+            model_a_name=model_a_info["name"] if model_a_info else battle.model_a_id,
+            model_b_id=battle.model_b_id,
+            model_b_name=model_b_info["name"] if model_b_info else battle.model_b_id,
+            conversation=battle.conversation or [],
+            model_a_response=battle.model_a_response,
+            model_b_response=battle.model_b_response,
+            winner=battle.winner,
+            is_revealed=battle.is_revealed or 0,
+            created_at=battle.created_at.isoformat() if battle.created_at else "",
+            updated_at=battle.updated_at.isoformat() if battle.updated_at else None
+        ))
+    
+    return BattleHistoryResponse(
+        success=True,
+        battles=battle_items,
+        total=len(battle_items)
     )
 
 

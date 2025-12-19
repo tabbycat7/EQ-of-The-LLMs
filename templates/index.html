@@ -58,6 +58,10 @@
                     <span class="nav-icon">⚔️</span>
                     <span class="nav-label">匿名对战</span>
                 </button>
+                <button class="mode-btn nav-btn" data-mode="history">
+                    <span class="nav-icon">📜</span>
+                    <span class="nav-label">历史对话</span>
+                </button>
                 <!-- 仅 admin 可见的"添加用户"按钮 -->
                 <button id="admin-toggle-panel-btn" class="nav-btn admin-nav-btn" type="button" style="display: none;">
                     <span class="nav-icon">➕</span>
@@ -222,6 +226,20 @@
                         <div class="new-round" id="sidebyside-new-round" style="display: none;">
                             <button id="sidebyside-new-round-btn" class="secondary-btn ghost">开启新一轮对话</button>
                         </div>
+                    </div>
+                </section>
+
+                <!-- 历史对话模式 -->
+                <section id="history-mode" class="mode-content" style="display: none;">
+                    <div class="mode-header">
+                        <div class="mode-title">
+                            <h2>历史对话</h2>
+                            <p>查看你参与的所有对战对话历史记录。</p>
+                        </div>
+                        <button id="refresh-history-btn" class="secondary-btn">刷新</button>
+                    </div>
+                    <div id="history-content" class="history-list">
+                        <div class="loading">加载中...</div>
                     </div>
                 </section>
 

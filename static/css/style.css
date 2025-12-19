@@ -1405,6 +1405,134 @@ body {
     font-weight: 850;
 }
 
+/* 历史对话样式 */
+.history-list {
+    background: var(--cg-surface);
+    border: 1px solid var(--cg-border);
+    border-radius: var(--cg-radius);
+    box-shadow: var(--cg-shadow);
+    overflow: hidden;
+}
+
+.history-list-container {
+    padding: 16px;
+}
+
+.history-item {
+    background: var(--cg-surface);
+    border: 1px solid var(--cg-border);
+    border-radius: var(--cg-radius);
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: all 0.2s ease;
+}
+
+.history-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+}
+
+.history-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--cg-border);
+}
+
+.history-item-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.history-models {
+    font-weight: 750;
+    font-size: 16px;
+    color: var(--cg-text);
+}
+
+.history-status-badge {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.history-item-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    font-size: 13px;
+    color: var(--cg-muted);
+}
+
+.history-date {
+    font-weight: 500;
+}
+
+.history-winner {
+    font-weight: 700;
+    color: var(--cg-text);
+}
+
+.history-item-content {
+    margin-top: 12px;
+}
+
+.history-stats {
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: var(--cg-muted);
+}
+
+.history-conversation-preview {
+    background: var(--cg-surface-2);
+    border-radius: 8px;
+    padding: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.history-empty-conversation {
+    color: var(--cg-muted);
+    font-style: italic;
+    font-size: 13px;
+    padding: 12px;
+    text-align: center;
+}
+
+.history-msg {
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.history-msg.user-msg {
+    background: #e0f2fe;
+    color: #0c4a6e;
+}
+
+.history-msg.model-a-msg {
+    background: #fce7f3;
+    color: #831843;
+}
+
+.history-msg.model-b-msg {
+    background: #f0fdf4;
+    color: #14532d;
+}
+
+.history-msg:last-child {
+    margin-bottom: 0;
+}
+
 /* Toast（替代 alert：更像 ChatGPT） */
 .toast {
     position: fixed;
