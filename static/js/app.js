@@ -806,14 +806,39 @@ async function submitVote(winner) {
             })
         });
 
-        if (!response.ok) throw new Error('投票失败');
+        if (!response.ok) {
+            let errorMessage = '投票失败';
+            try {
+                const errorData = await response.json();
+                if (errorData.detail) {
+                    errorMessage = errorData.detail;
+                } else if (errorData.message) {
+                    errorMessage = errorData.message;
+                } else {
+                    errorMessage = `投票失败 (HTTP ${response.status})`;
+                }
+                // 如果是对战会话不存在，清空 session_id 以便重新创建
+                if (response.status === 404 && errorData.detail && errorData.detail.includes('不存在')) {
+                    console.warn('对战会话不存在，清空 session_id');
+                    battleSessionId = null;
+                }
+                // 如果已经投过票，可能是重复点击，提示用户
+                if (response.status === 400 && errorData.detail && errorData.detail.includes('已经投过票')) {
+                    errorMessage += '（请刷新页面后重新开始对战）';
+                }
+            } catch (e) {
+                // 如果响应不是 JSON，使用默认错误信息
+                errorMessage = `投票失败 (HTTP ${response.status})`;
+            }
+            throw new Error(errorMessage);
+        }
 
         const data = await response.json();
 
         // 隐藏投票区域
         document.getElementById('voting-section').style.display = 'none';
 
-        // 显示“开始新对战 / 继续当前模型对战”按钮区域
+        // 显示"开始新对战 / 继续当前模型对战"按钮区域
         document.getElementById('reveal-section').style.display = 'block';
 
         // 本轮投票完成后：保持输入区域隐藏，发送按钮禁用
@@ -824,7 +849,8 @@ async function submitVote(winner) {
 
     } catch (error) {
         console.error('投票失败:', error);
-        showError('投票失败，请重试');
+        const errorMessage = error.message || '投票失败，请重试';
+        showError(errorMessage);
     }
 }
 

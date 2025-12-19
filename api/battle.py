@@ -294,7 +294,13 @@ async def submit_evaluation(
     req: Request,
     db: AsyncSession = Depends(get_db)
 ):
-    """提交测评维度数据"""
+    """
+    提交测评维度数据
+    
+    注意：四个维度的评分（perception, calibration, differentiation, regulation）
+    仅用于记录和分析，不会影响 model_rating 的计算。
+    model_rating 只根据投票结果（winner）更新。
+    """
     # 获取当前登录用户ID
     current_user_id = None
     try:
@@ -410,7 +416,8 @@ async def submit_vote(
         source="battle",
     )
     
-    # 更新 BattleEvaluation 记录中的 rating 值
+    # 更新 BattleEvaluation 记录中的 rating 值（仅用于记录投票后的评分快照，不用于计算）
+    # 注意：四个维度的评分（perception, calibration, differentiation, regulation）不影响 model_rating
     result_a = await db.execute(
         select(BattleEvaluation).where(
             BattleEvaluation.battle_id == battle.id,
@@ -419,7 +426,7 @@ async def submit_vote(
     )
     eval_a = result_a.scalar_one_or_none()
     if eval_a:
-        eval_a.rating = new_rating_a
+        eval_a.rating = new_rating_a  # 仅记录，不参与计算
     
     result_b = await db.execute(
         select(BattleEvaluation).where(
@@ -429,7 +436,7 @@ async def submit_vote(
     )
     eval_b = result_b.scalar_one_or_none()
     if eval_b:
-        eval_b.rating = new_rating_b
+        eval_b.rating = new_rating_b  # 仅记录，不参与计算
     
     await db.commit()
     
