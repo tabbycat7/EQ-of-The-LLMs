@@ -137,9 +137,8 @@ async def continue_battle(
 ):
     """
     在当前两模型基础上继续新的对战轮次：
-    - 复用原对战的 model_a / model_b
-    - 复制历史对话作为新对战的初始 conversation
-    - 返回一个新的 session_id，避免重复投票报错
+    - 不立即创建新的 Battle 记录，只有当用户真正发送消息时才创建
+    - 返回原会话的 ID，前端用于标记"继续对话"模式
     """
     # 获取当前登录用户ID
     current_user_id = None
@@ -162,22 +161,11 @@ async def continue_battle(
         if old_battle.user_id != current_user_id:
             raise HTTPException(status_code=403, detail="无权访问此对战会话")
 
-    # 创建新的对战会话，复用模型与历史对话
-    new_battle = Battle(
-        user_id=current_user_id,
-        model_a_id=old_battle.model_a_id,
-        model_b_id=old_battle.model_b_id,
-        conversation=old_battle.conversation or [],
-        is_revealed=0,
-    )
-
-    db.add(new_battle)
-    await db.commit()
-    await db.refresh(new_battle)
-
+    # 不创建新记录，直接返回原会话ID
+    # 当用户真正发送消息时，battle_chat 会检测到这是"继续对话"模式并创建新记录
     return ContinueBattleResponse(
-        session_id=new_battle.id,
-        message="已继续当前模型进行新一轮对战。",
+        session_id=old_battle.id,  # 返回原会话ID，前端用它作为标记
+        message="可以继续对话，请在下方输入框中发送消息。",
     )
 
 
@@ -243,6 +231,23 @@ async def battle_chat(
         if current_user_id is not None:
             if battle.user_id != current_user_id:
                 raise HTTPException(status_code=403, detail="无权访问此对战会话")
+        
+        # 如果原会话已完成投票（winner 不为 NULL），说明这是"继续对话"模式
+        # 需要创建新的 Battle 记录，复用模型和历史对话
+        if battle.winner is not None:
+            # 创建新的对战会话，复用模型与历史对话
+            new_battle = Battle(
+                user_id=current_user_id,
+                model_a_id=battle.model_a_id,
+                model_b_id=battle.model_b_id,
+                conversation=battle.conversation.copy() if battle.conversation else [],
+                is_revealed=0,
+            )
+            db.add(new_battle)
+            await db.flush()  # flush 以获取新记录的 ID
+            await db.refresh(new_battle)
+            # 使用新创建的 battle 记录
+            battle = new_battle
 
     # 1) 读取已保存的历史对话（用于持久化）
     history = battle.conversation.copy() if battle.conversation else []

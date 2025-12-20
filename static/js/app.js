@@ -896,7 +896,8 @@ async function continueCurrentBattle() {
         }
 
         const data = await resp.json();
-        // 使用新的 session_id，避免投票时命中“该对战已经投过票了”的限制
+        // 设置 session_id 为原会话ID（作为标记）
+        // 当用户真正发送消息时，后端会检测到原会话已完成投票，自动创建新记录
         battleSessionId = data.session_id;
 
         // 隐藏“结果/按钮”区域，回到提问状态，但保留上一轮对话内容
