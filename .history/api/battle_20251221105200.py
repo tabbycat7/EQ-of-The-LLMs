@@ -304,13 +304,6 @@ async def battle_chat(
     battle.conversation = new_history
     battle.model_a_response = response_a
     battle.model_b_response = response_b
-    
-    # 更新用户提问次数（在对话成功后再更新，保证一致性）
-    if current_user_id is not None:
-        result = await db.execute(select(User).where(User.id == current_user_id))
-        user = result.scalar_one_or_none()
-        if user:
-            user.question_count = (user.question_count or 0) + 1
 
     await db.commit()
 

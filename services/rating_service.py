@@ -139,7 +139,9 @@ class RatingService:
             .values(**update_data_b)
         )
         
-        await db.commit()
+        # 注意：不在这里 commit，让调用者统一管理事务
+        # 这样可以确保评分更新与其他操作（如投票记录）在同一事务中
+        # await db.commit()  # 移除，由调用者控制事务
         
         return new_rating_a, new_rating_b
     

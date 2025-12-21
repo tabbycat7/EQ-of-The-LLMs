@@ -179,10 +179,16 @@ async def battle_chat(
     在对战模式下发送消息
     两个模型一次性回复（非流式）
     """
-    # 获取当前登录用户ID（先不更新提问次数，等操作成功后再更新）
+    # 获取当前登录用户并更新提问次数
     current_user_id = None
     try:
         current_user_id = get_current_user(req)
+        # 更新用户提问次数
+        result = await db.execute(select(User).where(User.id == current_user_id))
+        user = result.scalar_one_or_none()
+        if user:
+            user.question_count = (user.question_count or 0) + 1
+            await db.commit()
     except HTTPException:
         # 如果未登录，继续执行但不更新提问次数
         pass
@@ -304,13 +310,6 @@ async def battle_chat(
     battle.conversation = new_history
     battle.model_a_response = response_a
     battle.model_b_response = response_b
-    
-    # 更新用户提问次数（在对话成功后再更新，保证一致性）
-    if current_user_id is not None:
-        result = await db.execute(select(User).where(User.id == current_user_id))
-        user = result.scalar_one_or_none()
-        if user:
-            user.question_count = (user.question_count or 0) + 1
 
     await db.commit()
 
@@ -398,11 +397,9 @@ async def submit_vote(
     except HTTPException:
         pass  # 如果未登录，user_id为None
     
-    # 使用 SELECT FOR UPDATE 锁定行，防止并发投票
+    # 获取对战会话
     result = await db.execute(
-        select(Battle)
-        .where(Battle.id == request.session_id)
-        .with_for_update()  # 锁定这一行，防止并发修改
+        select(Battle).where(Battle.id == request.session_id)
     )
     battle = result.scalar_one_or_none()
     
@@ -414,12 +411,8 @@ async def submit_vote(
         if battle.user_id != current_user_id:
             raise HTTPException(status_code=403, detail="无权访问此对战会话")
     
-    # 检查是否已经投过票（winner 不为 None 且不为空字符串）
-    if battle.winner is not None and str(battle.winner).strip():
-        raise HTTPException(
-            status_code=400, 
-            detail=f"该对战已经投过票了（winner={battle.winner}, session_id={request.session_id}）"
-        )
+    if battle.winner:
+        raise HTTPException(status_code=400, detail="该对战已经投过票了")
     
     if request.winner not in ["model_a", "model_b", "tie", "both_bad"]:
         raise HTTPException(status_code=400, detail="无效的投票选项")
@@ -477,10 +470,7 @@ async def submit_vote(
     if eval_b:
         eval_b.rating = new_rating_b  # 仅记录，不参与计算
     
-    # 提交事务
     await db.commit()
-    # 刷新对象状态，确保数据一致
-    await db.refresh(battle)
     
     # 获取模型名称
     model_a_info = model_service.get_model_info(battle.model_a_id)

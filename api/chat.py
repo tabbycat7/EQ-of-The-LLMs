@@ -84,16 +84,10 @@ async def side_by_side_chat(
     并排对比模式
     同时查看两个模型的回答（非匿名）
     """
-    # 获取当前登录用户并更新提问次数
+    # 获取当前登录用户ID（先不更新提问次数，等操作成功后再更新）
     current_user_id = None
     try:
         current_user_id = get_current_user(req)
-        # 更新用户提问次数
-        result = await db.execute(select(User).where(User.id == current_user_id))
-        user = result.scalar_one_or_none()
-        if user:
-            user.question_count = (user.question_count or 0) + 1
-            await db.commit()
     except HTTPException:
         # 如果未登录，继续执行但不更新提问次数
         pass
@@ -152,6 +146,13 @@ async def side_by_side_chat(
         "content": f"[{model_b_info['name']}]: {response_b}"
     })
     session.conversation = messages
+    
+    # 更新用户提问次数（在对话成功后再更新，保证一致性）
+    if current_user_id is not None:
+        result = await db.execute(select(User).where(User.id == current_user_id))
+        user = result.scalar_one_or_none()
+        if user:
+            user.question_count = (user.question_count or 0) + 1
     
     await db.commit()
     

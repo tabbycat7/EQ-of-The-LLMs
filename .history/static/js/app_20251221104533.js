@@ -831,11 +831,11 @@ async function submitVote(winner) {
     voteButtons.forEach(btn => {
         btn.disabled = true;
     });
-
+    
     try {
         // 调试信息：记录当前 session_id
         console.log('提交投票，当前 battleSessionId:', battleSessionId);
-
+        
         const response = await fetch('/api/battle/vote', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1274,9 +1274,9 @@ function renderHistory(battles) {
                     <div class="history-stats">
                         <span>对话轮数：${conversationRounds}</span>
                     </div>
-                    ${battle.conversation && battle.conversation.length > 0 ?
-                renderConversationPreview(battle.conversation, isRevealed) :
-                '<div class="history-empty-conversation">暂无对话内容</div>'}
+                    ${battle.conversation && battle.conversation.length > 0 ? 
+                        renderConversationPreview(battle.conversation, isRevealed) : 
+                        '<div class="history-empty-conversation">暂无对话内容</div>'}
                 </div>
             </div>
         `;

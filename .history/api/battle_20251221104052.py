@@ -179,10 +179,16 @@ async def battle_chat(
     在对战模式下发送消息
     两个模型一次性回复（非流式）
     """
-    # 获取当前登录用户ID（先不更新提问次数，等操作成功后再更新）
+    # 获取当前登录用户并更新提问次数
     current_user_id = None
     try:
         current_user_id = get_current_user(req)
+        # 更新用户提问次数
+        result = await db.execute(select(User).where(User.id == current_user_id))
+        user = result.scalar_one_or_none()
+        if user:
+            user.question_count = (user.question_count or 0) + 1
+            await db.commit()
     except HTTPException:
         # 如果未登录，继续执行但不更新提问次数
         pass
@@ -304,13 +310,6 @@ async def battle_chat(
     battle.conversation = new_history
     battle.model_a_response = response_a
     battle.model_b_response = response_b
-    
-    # 更新用户提问次数（在对话成功后再更新，保证一致性）
-    if current_user_id is not None:
-        result = await db.execute(select(User).where(User.id == current_user_id))
-        user = result.scalar_one_or_none()
-        if user:
-            user.question_count = (user.question_count or 0) + 1
 
     await db.commit()
 

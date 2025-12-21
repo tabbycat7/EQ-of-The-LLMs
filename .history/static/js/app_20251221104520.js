@@ -831,11 +831,11 @@ async function submitVote(winner) {
     voteButtons.forEach(btn => {
         btn.disabled = true;
     });
-
+    
     try {
         // 调试信息：记录当前 session_id
         console.log('提交投票，当前 battleSessionId:', battleSessionId);
-
+        
         const response = await fetch('/api/battle/vote', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -946,11 +946,6 @@ async function continueCurrentBattle() {
         // 不清空界面上的聊天内容，只是重新启用输入与发送
         if (sendBtn) sendBtn.disabled = false;
         if (battleInputSection) battleInputSection.style.display = 'block';
-        // 确保投票按钮是启用状态（防止之前的状态影响）
-        const voteButtons = document.querySelectorAll('.battle-vote-btn');
-        voteButtons.forEach(btn => {
-            btn.disabled = false;
-        });
     } catch (e) {
         console.error('继续对战失败:', e);
         showError('继续对战失败，请稍后重试');
@@ -1274,9 +1269,9 @@ function renderHistory(battles) {
                     <div class="history-stats">
                         <span>对话轮数：${conversationRounds}</span>
                     </div>
-                    ${battle.conversation && battle.conversation.length > 0 ?
-                renderConversationPreview(battle.conversation, isRevealed) :
-                '<div class="history-empty-conversation">暂无对话内容</div>'}
+                    ${battle.conversation && battle.conversation.length > 0 ? 
+                        renderConversationPreview(battle.conversation, isRevealed) : 
+                        '<div class="history-empty-conversation">暂无对话内容</div>'}
                 </div>
             </div>
         `;

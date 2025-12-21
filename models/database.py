@@ -6,20 +6,35 @@ import config
 
 # 如果是 MySQL，添加字符集参数
 database_url = config.DATABASE_URL
-if database_url.startswith("mysql+asyncmy://") or database_url.startswith("mysql://"):
+is_mysql = database_url.startswith("mysql+asyncmy://") or database_url.startswith("mysql://")
+
+if is_mysql:
     # 确保连接字符串包含 charset=utf8mb4
     if "charset=" not in database_url and "?" not in database_url:
         database_url += "?charset=utf8mb4"
     elif "charset=" not in database_url:
         database_url += "&charset=utf8mb4"
 
-# 创建异步引擎
+# 配置连接参数
+connect_args = {}
+if is_mysql:
+    # MySQL 连接参数（asyncmy 支持的参数）
+    connect_args = {
+        "charset": "utf8mb4",
+    }
+
+# 创建异步引擎，配置连接池
 engine = create_async_engine(
     database_url,
     echo=False,
     future=True,
-    # 对于 MySQL，确保使用 utf8mb4
-    connect_args={"charset": "utf8mb4"} if ("mysql" in database_url.lower()) else {}
+    # 连接池配置
+    pool_size=10,  # 连接池大小
+    max_overflow=20,  # 最大溢出连接数
+    pool_timeout=30,  # 获取连接的超时时间（秒）
+    pool_recycle=3600,  # 连接回收时间（秒）- 1小时，避免 MySQL wait_timeout 问题
+    pool_pre_ping=True,  # 在每次使用前 ping 数据库，检查连接是否有效
+    connect_args=connect_args
 )
 
 # 创建异步会话工厂
