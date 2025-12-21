@@ -566,21 +566,21 @@ async function sendBattleMessage() {
                                 </div>
                             </div>
                             <div class="evaluation-item">
-                                <label>合适口吻</label>
+                                <label>校准</label>
                                 <div class="evaluation-options">
                                     <button class="eval-btn" data-dimension="calibration" data-value="1">符合要求</button>
                                     <button class="eval-btn" data-dimension="calibration" data-value="0">不符合要求</button>
                                 </div>
                             </div>
                             <div class="evaluation-item">
-                                <label>坚持立场</label>
+                                <label>分化</label>
                                 <div class="evaluation-options">
                                     <button class="eval-btn" data-dimension="differentiation" data-value="1">符合要求</button>
                                     <button class="eval-btn" data-dimension="differentiation" data-value="0">不符合要求</button>
                                 </div>
                             </div>
                             <div class="evaluation-item">
-                                <label>有效引导</label>
+                                <label>调节</label>
                                 <div class="evaluation-options">
                                     <button class="eval-btn" data-dimension="regulation" data-value="1">符合要求</button>
                                     <button class="eval-btn" data-dimension="regulation" data-value="0">不符合要求</button>
@@ -598,28 +598,28 @@ async function sendBattleMessage() {
                         <div class="evaluation-title">测评维度</div>
                         <div class="evaluation-dimensions">
                             <div class="evaluation-item">
-                                <label>精准感知</label>
+                                <label>感知</label>
                                 <div class="evaluation-options">
                                     <button class="eval-btn" data-dimension="perception" data-value="1">符合要求</button>
                                     <button class="eval-btn" data-dimension="perception" data-value="0">不符合要求</button>
                                 </div>
                             </div>
                             <div class="evaluation-item">
-                                <label>合适口吻</label>
+                                <label>校准</label>
                                 <div class="evaluation-options">
                                     <button class="eval-btn" data-dimension="calibration" data-value="1">符合要求</button>
                                     <button class="eval-btn" data-dimension="calibration" data-value="0">不符合要求</button>
                                 </div>
                             </div>
                             <div class="evaluation-item">
-                                <label>坚持立场</label>
+                                <label>分化</label>
                                 <div class="evaluation-options">
                                     <button class="eval-btn" data-dimension="differentiation" data-value="1">符合要求</button>
                                     <button class="eval-btn" data-dimension="differentiation" data-value="0">不符合要求</button>
                                 </div>
                             </div>
                             <div class="evaluation-item">
-                                <label>有效引导</label>
+                                <label>调节</label>
                                 <div class="evaluation-options">
                                     <button class="eval-btn" data-dimension="regulation" data-value="1">符合要求</button>
                                     <button class="eval-btn" data-dimension="regulation" data-value="0">不符合要求</button>
@@ -1177,6 +1177,9 @@ function renderLeaderboard(leaderboard) {
             <div>排名</div>
             <div>模型</div>
             <div>评分</div>
+            <div>对战数</div>
+            <div>胜率</div>
+            <div>胜/负/平</div>
         </div>
     `;
 
@@ -1187,6 +1190,9 @@ function renderLeaderboard(leaderboard) {
                 <div class="rank">${rankEmoji} ${item.rank}</div>
                 <div class="model-name">${item.model_name}</div>
                 <div class="stat rating">${item.rating}</div>
+                <div class="stat">${item.total_battles}</div>
+                <div class="stat">${item.win_rate}%</div>
+                <div class="stat">${item.wins}/${item.losses}/${item.ties}</div>
             </div>
         `;
     });

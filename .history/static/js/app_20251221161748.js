@@ -1177,6 +1177,9 @@ function renderLeaderboard(leaderboard) {
             <div>排名</div>
             <div>模型</div>
             <div>评分</div>
+            <div>对战数</div>
+            <div>胜率</div>
+            <div>胜/负/平</div>
         </div>
     `;
 
@@ -1187,6 +1190,9 @@ function renderLeaderboard(leaderboard) {
                 <div class="rank">${rankEmoji} ${item.rank}</div>
                 <div class="model-name">${item.model_name}</div>
                 <div class="stat rating">${item.rating}</div>
+                <div class="stat">${item.total_battles}</div>
+                <div class="stat">${item.win_rate}%</div>
+                <div class="stat">${item.wins}/${item.losses}/${item.ties}</div>
             </div>
         `;
     });

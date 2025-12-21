@@ -171,11 +171,30 @@ async function initApp() {
     // 设置对战模式
     setupBattleMode();
 
-    // 设置并排对比模式（但不加载模型，延迟到需要时）
-    setupSideBySideMode();
+    // 检查并排对比模式是否可见，如果可见才加载模型和设置
+    const sidebysideBtn = document.querySelector('.mode-btn[data-mode="sidebyside"]');
+    if (sidebysideBtn && sidebysideBtn.style.display !== 'none') {
+        // 加载可用模型（并排对比模式需要）
+        await loadModels();
+        // 设置并排对比模式
+        setupSideBySideMode();
+    } else {
+        // 即使隐藏，也需要设置基本的模型加载（可能对战模式也会用到）
+        // 但不立即加载，延迟到需要时
+        setupSideBySideMode();
+    }
 
-    // 设置排行榜（但不加载数据，延迟到需要时）
-    setupLeaderboard();
+    // 检查排行榜是否可见，如果可见才加载
+    const leaderboardBtn = document.querySelector('.mode-btn[data-mode="leaderboard"]');
+    if (leaderboardBtn && leaderboardBtn.style.display !== 'none') {
+        // 设置排行榜
+        setupLeaderboard();
+        // 初始加载排行榜
+        loadLeaderboard();
+    } else {
+        // 即使隐藏也设置，但不加载数据
+        setupLeaderboard();
+    }
 
     // 设置历史对话
     setupHistoryMode();
@@ -185,8 +204,6 @@ async function initApp() {
 
     // 设置管理员面板（仅 admin 可见）
     setupAdminPanel();
-
-    // 不在初始化时加载数据，只在用户切换到对应模式时才加载
 }
 
 // 设置退出登录功能
@@ -397,7 +414,7 @@ function setupModeSelector() {
     const modeContents = document.querySelectorAll('.mode-content');
 
     modeButtons.forEach(btn => {
-        btn.addEventListener('click', async () => {
+        btn.addEventListener('click', () => {
             const mode = btn.dataset.mode;
             if (!mode) return;
 
@@ -421,13 +438,9 @@ function setupModeSelector() {
 
             currentMode = mode;
 
-            // 如果切换到排行榜，加载数据（延迟加载）
+            // 如果切换到排行榜，刷新数据
             if (mode === 'leaderboard') {
                 loadLeaderboard();
-            }
-            // 如果切换到并排对比模式，确保模型已加载（延迟加载）
-            if (mode === 'sidebyside' && availableModels.length === 0) {
-                await loadModels();
             }
             // 如果切换到历史对话，加载历史记录
             if (mode === 'history') {
@@ -559,28 +572,28 @@ async function sendBattleMessage() {
                         <div class="evaluation-title">测评维度</div>
                         <div class="evaluation-dimensions">
                             <div class="evaluation-item">
-                                <label>精准感知</label>
+                                <label>感知</label>
                                 <div class="evaluation-options">
                                     <button class="eval-btn" data-dimension="perception" data-value="1">符合要求</button>
                                     <button class="eval-btn" data-dimension="perception" data-value="0">不符合要求</button>
                                 </div>
                             </div>
                             <div class="evaluation-item">
-                                <label>合适口吻</label>
+                                <label>校准</label>
                                 <div class="evaluation-options">
                                     <button class="eval-btn" data-dimension="calibration" data-value="1">符合要求</button>
                                     <button class="eval-btn" data-dimension="calibration" data-value="0">不符合要求</button>
                                 </div>
                             </div>
                             <div class="evaluation-item">
-                                <label>坚持立场</label>
+                                <label>分化</label>
                                 <div class="evaluation-options">
                                     <button class="eval-btn" data-dimension="differentiation" data-value="1">符合要求</button>
                                     <button class="eval-btn" data-dimension="differentiation" data-value="0">不符合要求</button>
                                 </div>
                             </div>
                             <div class="evaluation-item">
-                                <label>有效引导</label>
+                                <label>调节</label>
                                 <div class="evaluation-options">
                                     <button class="eval-btn" data-dimension="regulation" data-value="1">符合要求</button>
                                     <button class="eval-btn" data-dimension="regulation" data-value="0">不符合要求</button>
@@ -598,28 +611,28 @@ async function sendBattleMessage() {
                         <div class="evaluation-title">测评维度</div>
                         <div class="evaluation-dimensions">
                             <div class="evaluation-item">
-                                <label>精准感知</label>
+                                <label>感知</label>
                                 <div class="evaluation-options">
                                     <button class="eval-btn" data-dimension="perception" data-value="1">符合要求</button>
                                     <button class="eval-btn" data-dimension="perception" data-value="0">不符合要求</button>
                                 </div>
                             </div>
                             <div class="evaluation-item">
-                                <label>合适口吻</label>
+                                <label>校准</label>
                                 <div class="evaluation-options">
                                     <button class="eval-btn" data-dimension="calibration" data-value="1">符合要求</button>
                                     <button class="eval-btn" data-dimension="calibration" data-value="0">不符合要求</button>
                                 </div>
                             </div>
                             <div class="evaluation-item">
-                                <label>坚持立场</label>
+                                <label>分化</label>
                                 <div class="evaluation-options">
                                     <button class="eval-btn" data-dimension="differentiation" data-value="1">符合要求</button>
                                     <button class="eval-btn" data-dimension="differentiation" data-value="0">不符合要求</button>
                                 </div>
                             </div>
                             <div class="evaluation-item">
-                                <label>有效引导</label>
+                                <label>调节</label>
                                 <div class="evaluation-options">
                                     <button class="eval-btn" data-dimension="regulation" data-value="1">符合要求</button>
                                     <button class="eval-btn" data-dimension="regulation" data-value="0">不符合要求</button>
@@ -1177,6 +1190,9 @@ function renderLeaderboard(leaderboard) {
             <div>排名</div>
             <div>模型</div>
             <div>评分</div>
+            <div>对战数</div>
+            <div>胜率</div>
+            <div>胜/负/平</div>
         </div>
     `;
 
@@ -1187,6 +1203,9 @@ function renderLeaderboard(leaderboard) {
                 <div class="rank">${rankEmoji} ${item.rank}</div>
                 <div class="model-name">${item.model_name}</div>
                 <div class="stat rating">${item.rating}</div>
+                <div class="stat">${item.total_battles}</div>
+                <div class="stat">${item.win_rate}%</div>
+                <div class="stat">${item.wins}/${item.losses}/${item.ties}</div>
             </div>
         `;
     });
