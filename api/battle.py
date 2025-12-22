@@ -7,7 +7,7 @@ from typing import Optional, List
 import random
 
 from models.database import get_db
-from models.schemas import Battle, Vote, User, BattleEvaluation
+from models.schemas import Battle, Vote, User
 from services.model_service import ModelService
 from services.rating_service import RatingService
 from api.auth import get_current_user
@@ -34,18 +34,6 @@ class ChatResponse(BaseModel):
     session_id: str
     response_a: str
     response_b: str
-
-
-class EvaluationRequest(BaseModel):
-    """测评维度请求"""
-    session_id: str
-    evaluation: dict  # {"model_a": {"perception": 1, "calibration": 1, ...}, "model_b": {...}}
-
-
-class EvaluationResponse(BaseModel):
-    """测评维度响应"""
-    success: bool
-    message: str
 
 
 class VoteRequest(BaseModel):
@@ -321,66 +309,6 @@ async def battle_chat(
     )
 
 
-@router.post("/evaluation", response_model=EvaluationResponse)
-async def submit_evaluation(
-    request: EvaluationRequest,
-    req: Request,
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    提交测评维度数据
-    
-    注意：四个维度的评分（perception, calibration, differentiation, regulation）
-    仅用于记录和分析，不会影响 model_rating 的计算。
-    model_rating 只根据投票结果（winner）更新。
-    """
-    # 获取当前登录用户ID
-    current_user_id = None
-    try:
-        current_user_id = get_current_user(req)
-    except HTTPException:
-        pass  # 如果未登录，user_id为None
-    
-    # 获取对战会话
-    result = await db.execute(
-        select(Battle).where(Battle.id == request.session_id)
-    )
-    battle = result.scalar_one_or_none()
-    
-    if not battle:
-        raise HTTPException(status_code=404, detail="对战会话不存在")
-    
-    # 验证会话是否属于当前用户（如果用户已登录）
-    if current_user_id is not None:
-        if battle.user_id != current_user_id:
-            raise HTTPException(status_code=403, detail="无权访问此对战会话")
-    
-    # 保存测评维度数据
-    evaluation_data = request.evaluation
-    for model_type in ["model_a", "model_b"]:
-        if model_type in evaluation_data:
-            model_eval = evaluation_data[model_type]
-            # 根据model_type获取对应的模型ID
-            model_id = battle.model_a_id if model_type == "model_a" else battle.model_b_id
-            eval_record = BattleEvaluation(
-                battle_id=battle.id,
-                model_type=model_type,
-                model_id=model_id,
-                perception=model_eval.get("perception"),
-                calibration=model_eval.get("calibration"),
-                differentiation=model_eval.get("differentiation"),
-                regulation=model_eval.get("regulation")
-            )
-            db.add(eval_record)
-    
-    await db.commit()
-    
-    return EvaluationResponse(
-        success=True,
-        message="测评维度提交成功"
-    )
-
-
 @router.post("/vote", response_model=VoteResponse)
 async def submit_vote(
     request: VoteRequest,
@@ -454,28 +382,6 @@ async def submit_vote(
         request.winner,
         source="battle",
     )
-    
-    # 更新 BattleEvaluation 记录中的 rating 值（仅用于记录投票后的评分快照，不用于计算）
-    # 注意：四个维度的评分（perception, calibration, differentiation, regulation）不影响 model_rating
-    result_a = await db.execute(
-        select(BattleEvaluation).where(
-            BattleEvaluation.battle_id == battle.id,
-            BattleEvaluation.model_type == "model_a"
-        )
-    )
-    eval_a = result_a.scalar_one_or_none()
-    if eval_a:
-        eval_a.rating = new_rating_a  # 仅记录，不参与计算
-    
-    result_b = await db.execute(
-        select(BattleEvaluation).where(
-            BattleEvaluation.battle_id == battle.id,
-            BattleEvaluation.model_type == "model_b"
-        )
-    )
-    eval_b = result_b.scalar_one_or_none()
-    if eval_b:
-        eval_b.rating = new_rating_b  # 仅记录，不参与计算
     
     # 提交事务
     await db.commit()

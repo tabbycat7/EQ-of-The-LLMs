@@ -622,7 +622,7 @@ function setupBattleMode() {
             // 检查按钮是否已禁用，避免重复提交
             const sendBtn = document.getElementById('battle-send-btn');
             if (sendBtn && !sendBtn.disabled) {
-                sendBattleMessage();
+            sendBattleMessage();
             }
         }
     });
@@ -716,82 +716,13 @@ async function sendBattleMessage() {
                     <div class="response-content" data-role="response-a">
                         <div class="loading">思考中...</div>
                     </div>
-                    <div class="evaluation-section" data-model="model_a" style="display: none;">
-                        <div class="evaluation-title">测评维度</div>
-                        <div class="evaluation-dimensions">
-                            <div class="evaluation-item">
-                                <label>精准感知</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="perception" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="perception" data-value="0">不符合要求</button>
-                                </div>
-                            </div>
-                            <div class="evaluation-item">
-                                <label>合适口吻</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="calibration" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="calibration" data-value="0">不符合要求</button>
-                                </div>
-                            </div>
-                            <div class="evaluation-item">
-                                <label>坚持立场</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="differentiation" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="differentiation" data-value="0">不符合要求</button>
-                                </div>
-                            </div>
-                            <div class="evaluation-item">
-                                <label>有效引导</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="regulation" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="regulation" data-value="0">不符合要求</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
                 <div class="response-box">
                     <div class="response-header">模型 B</div>
                     <div class="response-content" data-role="response-b">
                         <div class="loading">思考中...</div>
                     </div>
-                    <div class="evaluation-section" data-model="model_b" style="display: none;">
-                        <div class="evaluation-title">测评维度</div>
-                        <div class="evaluation-dimensions">
-                            <div class="evaluation-item">
-                                <label>精准感知</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="perception" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="perception" data-value="0">不符合要求</button>
-                                </div>
-                            </div>
-                            <div class="evaluation-item">
-                                <label>合适口吻</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="calibration" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="calibration" data-value="0">不符合要求</button>
-                                </div>
-                            </div>
-                            <div class="evaluation-item">
-                                <label>坚持立场</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="differentiation" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="differentiation" data-value="0">不符合要求</button>
-                                </div>
-                            </div>
-                            <div class="evaluation-item">
-                                <label>有效引导</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="regulation" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="regulation" data-value="0">不符合要求</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
-            </div>
-            <div class="evaluation-submit-section" style="display: none;">
-                <button class="submit-evaluation-btn primary-btn">提交测评</button>
             </div>
         `;
         battleResponses.appendChild(roundEl);
@@ -860,17 +791,16 @@ async function sendBattleMessage() {
             responseB.innerHTML = finalB || '';
         }
 
-        // 显示测评维度选择界面
-        const evalSections = roundEl.querySelectorAll('.evaluation-section');
-        evalSections.forEach(section => section.style.display = 'block');
-        const submitSection = roundEl.querySelector('.evaluation-submit-section');
-        if (submitSection) submitSection.style.display = 'block';
-
-        // 设置测评维度选择事件
-        setupEvaluationButtons(roundEl);
-
-        // 隐藏投票区域（等测评提交后才显示）
-        document.getElementById('voting-section').style.display = 'none';
+        // 直接显示投票区域
+        const votingSection = document.getElementById('voting-section');
+        if (votingSection) {
+            votingSection.style.display = 'block';
+            // 确保投票按钮是启用状态
+            const voteButtons = document.querySelectorAll('.battle-vote-btn');
+            voteButtons.forEach(btn => {
+                btn.disabled = false;
+            });
+        }
 
         input.value = '';
 
@@ -884,105 +814,6 @@ async function sendBattleMessage() {
         if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
             console.error('网络错误：可能后端服务未启动或无法访问');
         }
-    }
-}
-
-// 设置测评维度选择按钮
-function setupEvaluationButtons(roundEl) {
-    const evalButtons = roundEl.querySelectorAll('.eval-btn');
-    const submitBtn = roundEl.querySelector('.submit-evaluation-btn');
-
-    // 存储当前轮的测评数据
-    const evaluationData = {
-        model_a: { perception: null, calibration: null, differentiation: null, regulation: null },
-        model_b: { perception: null, calibration: null, differentiation: null, regulation: null }
-    };
-
-    evalButtons.forEach(btn => {
-        btn.addEventListener('click', function () {
-            const model = this.closest('.evaluation-section').dataset.model;
-            const dimension = this.dataset.dimension;
-            const value = parseInt(this.dataset.value);
-
-            // 更新数据
-            evaluationData[model][dimension] = value;
-
-            // 更新按钮样式：同维度其他按钮取消选中，当前按钮选中
-            const dimensionGroup = this.closest('.evaluation-item');
-            const allButtonsInGroup = dimensionGroup.querySelectorAll('.eval-btn');
-            allButtonsInGroup.forEach(b => b.classList.remove('selected'));
-            this.classList.add('selected');
-
-            // 检查是否所有维度都已选择
-            const allSelected = checkAllDimensionsSelected(roundEl, evaluationData);
-            if (submitBtn) {
-                submitBtn.disabled = !allSelected;
-            }
-        });
-    });
-
-    // 提交测评按钮
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.addEventListener('click', async () => {
-            await submitEvaluation(roundEl, evaluationData);
-        });
-    }
-}
-
-// 检查是否所有维度都已选择
-function checkAllDimensionsSelected(roundEl, evaluationData) {
-    const dimensions = ['perception', 'calibration', 'differentiation', 'regulation'];
-    for (const model of ['model_a', 'model_b']) {
-        for (const dim of dimensions) {
-            if (evaluationData[model][dim] === null) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-// 提交测评维度
-async function submitEvaluation(roundEl, evaluationData) {
-    try {
-        const submitBtn = roundEl.querySelector('.submit-evaluation-btn');
-        if (submitBtn) submitBtn.disabled = true;
-
-        const response = await fetch('/api/battle/evaluation', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',  // 确保包含 cookies（用于 session 认证）
-            body: JSON.stringify({
-                session_id: battleSessionId,
-                evaluation: evaluationData
-            })
-        });
-
-        if (!response.ok) throw new Error('提交测评失败');
-
-        // 隐藏测评区域
-        const evalSections = roundEl.querySelectorAll('.evaluation-section');
-        evalSections.forEach(section => section.style.display = 'none');
-        const submitSection = roundEl.querySelector('.evaluation-submit-section');
-        if (submitSection) submitSection.style.display = 'none';
-
-        // 显示投票区域，并确保投票按钮是启用状态
-        const votingSection = document.getElementById('voting-section');
-        if (votingSection) {
-            votingSection.style.display = 'block';
-            // 重新启用所有投票按钮（防止之前的禁用状态影响新的投票）
-            const voteButtons = document.querySelectorAll('.battle-vote-btn');
-            voteButtons.forEach(btn => {
-                btn.disabled = false;
-            });
-        }
-
-    } catch (error) {
-        console.error('提交测评失败:', error);
-        showError('提交测评失败，请重试');
-        const submitBtn = roundEl.querySelector('.submit-evaluation-btn');
-        if (submitBtn) submitBtn.disabled = false;
     }
 }
 
@@ -1135,7 +966,7 @@ function setupSideBySideMode() {
             // 检查按钮是否已禁用，避免重复提交
             const sendBtn = document.getElementById('sidebyside-send-btn');
             if (sendBtn && !sendBtn.disabled) {
-                sendSideBySideMessage();
+            sendSideBySideMessage();
             }
         }
     });
