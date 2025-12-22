@@ -369,8 +369,6 @@ async function loadDashboard() {
 }
 
 // 渲染数据看板
-let dashboardChart = null;
-
 function renderDashboard(stats) {
     const container = document.getElementById('dashboard-content');
     if (!container) return;
@@ -410,100 +408,6 @@ function renderDashboard(stats) {
             </div>
         </div>
     `;
-
-    // 渲染折线图
-    renderDashboardChart(stats.daily_battles || []);
-}
-
-// 渲染折线图
-function renderDashboardChart(dailyBattles) {
-    const chartContainer = document.getElementById('dashboard-chart-container');
-    const chartCanvas = document.getElementById('dashboard-chart');
-
-    if (!chartContainer || !chartCanvas) return;
-
-    // 显示图表容器
-    chartContainer.style.display = 'block';
-
-    // 销毁之前的图表（如果存在）
-    if (dashboardChart) {
-        dashboardChart.destroy();
-    }
-
-    // 准备数据
-    const labels = dailyBattles.map(item => {
-        const date = new Date(item.date);
-        const month = date.getMonth() + 1;
-        const day = date.getDate();
-        return `${month}/${day}`;
-    });
-    const data = dailyBattles.map(item => item.count);
-
-    // 创建新图表
-    const ctx = chartCanvas.getContext('2d');
-    dashboardChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: '作答数量',
-                data: data,
-                borderColor: '#111827',
-                backgroundColor: 'rgba(17, 24, 39, 0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0,
-                pointBackgroundColor: '#111827',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointRadius: 4,
-                pointHoverRadius: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    padding: 12,
-                    titleFont: {
-                        size: 14,
-                        weight: 'bold'
-                    },
-                    bodyFont: {
-                        size: 13
-                    },
-                    displayColors: false,
-                    callbacks: {
-                        label: function (context) {
-                            return '作答数量: ' + context.parsed.y;
-                        }
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1,
-                        precision: 0
-                    },
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.05)'
-                    }
-                },
-                x: {
-                    grid: {
-                        display: false
-                    }
-                }
-            }
-        }
-    });
 }
 
 // 加载可用模型

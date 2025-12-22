@@ -452,7 +452,7 @@ function renderDashboardChart(dailyBattles) {
                 backgroundColor: 'rgba(17, 24, 39, 0.1)',
                 borderWidth: 2,
                 fill: true,
-                tension: 0,
+                tension: 0.4,
                 pointBackgroundColor: '#111827',
                 pointBorderColor: '#fff',
                 pointBorderWidth: 2,

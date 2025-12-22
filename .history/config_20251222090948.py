@@ -20,13 +20,13 @@ AVAILABLE_MODELS = [
     # OpenAI 兼容模型（使用 zetatechs.com API）
     {
         "id": "gpt-4o",
-        "name": "GPT 4o",
+        "name": "GPT-4o",
         "provider": "openai",
         "initial_rating": 0
     },
     {
         "id": "gpt-4o-mini",
-        "name": "GPT 4o mini",
+        "name": "GPT-4o Mini",
         "provider": "openai",
         "initial_rating": 0
     },

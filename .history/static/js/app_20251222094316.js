@@ -419,7 +419,7 @@ function renderDashboard(stats) {
 function renderDashboardChart(dailyBattles) {
     const chartContainer = document.getElementById('dashboard-chart-container');
     const chartCanvas = document.getElementById('dashboard-chart');
-
+    
     if (!chartContainer || !chartCanvas) return;
 
     // 显示图表容器
@@ -452,7 +452,7 @@ function renderDashboardChart(dailyBattles) {
                 backgroundColor: 'rgba(17, 24, 39, 0.1)',
                 borderWidth: 2,
                 fill: true,
-                tension: 0,
+                tension: 0.4,
                 pointBackgroundColor: '#111827',
                 pointBorderColor: '#fff',
                 pointBorderWidth: 2,
@@ -479,7 +479,7 @@ function renderDashboardChart(dailyBattles) {
                     },
                     displayColors: false,
                     callbacks: {
-                        label: function (context) {
+                        label: function(context) {
                             return '作答数量: ' + context.parsed.y;
                         }
                     }

@@ -65,12 +65,9 @@ class RatingService:
 
         # 如果评分表中不存在，补录一条初始记录（兼容新增模型或未初始化的模型）
         if model_a_rating is None:
-            # 从配置中获取模型的真实名称
-            model_a_info = ModelService.get_model_info(model_a_id)
-            model_a_name = model_a_info["name"] if model_a_info else model_a_id
             model_a_rating = ModelRating(
                 model_id=model_a_id,
-                model_name=model_a_name,
+                model_name=model_a_id,
                 rating=config.INITIAL_RATING,
                 total_battles=0,
                 wins=0,
@@ -80,12 +77,9 @@ class RatingService:
             db.add(model_a_rating)
 
         if model_b_rating is None:
-            # 从配置中获取模型的真实名称
-            model_b_info = ModelService.get_model_info(model_b_id)
-            model_b_name = model_b_info["name"] if model_b_info else model_b_id
             model_b_rating = ModelRating(
                 model_id=model_b_id,
-                model_name=model_b_name,
+                model_name=model_b_id,
                 rating=config.INITIAL_RATING,
                 total_battles=0,
                 wins=0,
