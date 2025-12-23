@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 import random
 
-from models.database import get_db
+from models.database import get_db, async_session_maker
 from models.schemas import Battle, Vote, User, BattleEvaluation
 from services.model_service import ModelService
 from services.rating_service import RatingService
@@ -415,13 +415,54 @@ async def submit_vote(
             raise HTTPException(status_code=403, detail="无权访问此对战会话")
     
     # 检查是否已经投过票（winner 不为 None 且不为空字符串）
-    if battle.winner is not None and str(battle.winner).strip():
-        raise HTTPException(
-            status_code=400, 
-            detail=f"该对战已经投过票了（winner={battle.winner}, session_id={request.session_id}）"
-        )
+    # 如果已经投过票，采用幂等性处理：返回成功响应而不是错误
+    # 这样可以避免因重复提交导致的400错误，同时数据已经正确记录了
+    if battle.winner is not None:
+        winner_str = str(battle.winner).strip()
+        if winner_str:  # 如果 winner 不是空字符串，说明已经投过票
+            # 释放锁，因为不需要更新数据
+            await db.rollback()
+            
+            # 使用新的查询获取最新的数据（不在事务中，避免锁问题）
+            async with async_session_maker() as new_db:
+                latest_result = await new_db.execute(
+                    select(Battle).where(Battle.id == request.session_id)
+                )
+                latest_battle = latest_result.scalar_one_or_none()
+                
+                if not latest_battle:
+                    raise HTTPException(status_code=404, detail="对战会话不存在")
+                
+                # 获取模型名称
+                model_a_info = model_service.get_model_info(latest_battle.model_a_id)
+                model_b_info = model_service.get_model_info(latest_battle.model_b_id)
+                
+                # 获取当前的评分
+                from models.schemas import ModelRating
+                rating_result_a = await new_db.execute(
+                    select(ModelRating).where(ModelRating.model_id == latest_battle.model_a_id)
+                )
+                rating_result_b = await new_db.execute(
+                    select(ModelRating).where(ModelRating.model_id == latest_battle.model_b_id)
+                )
+                rating_a = rating_result_a.scalar_one_or_none()
+                rating_b = rating_result_b.scalar_one_or_none()
+                current_rating_a = rating_a.rating if rating_a else 0
+                current_rating_b = rating_b.rating if rating_b else 0
+                
+                return VoteResponse(
+                    success=True,
+                    message="该对战已经投过票了，返回已有结果。",
+                    model_a_id=latest_battle.model_a_id,
+                    model_a_name=model_a_info["name"] if model_a_info else latest_battle.model_a_id,
+                    model_b_id=latest_battle.model_b_id,
+                    model_b_name=model_b_info["name"] if model_b_info else latest_battle.model_b_id,
+                    new_rating_a=current_rating_a,
+                    new_rating_b=current_rating_b
+                )
     
     if request.winner not in ["model_a", "model_b", "tie", "both_bad"]:
+        await db.rollback()  # 释放锁
         raise HTTPException(status_code=400, detail="无效的投票选项")
     
     # 更新对战结果
