@@ -5,12 +5,23 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from contextlib import asynccontextmanager
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 import os
 import secrets
+import logging
 
 from api import battle_router, chat_router, leaderboard_router
 from api.auth import router as auth_router
 from models.database import init_db
+
+# 配置日志
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # 使用环境变量或生成固定的secret key用于session
 SESSION_SECRET_KEY = os.getenv("SESSION_SECRET_KEY", "lmarena-session-secret-key-change-in-production")
@@ -64,6 +75,37 @@ app.include_router(auth_router)
 app.include_router(battle_router)
 app.include_router(chat_router)
 app.include_router(leaderboard_router)
+
+
+# 全局异常处理器
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """处理 HTTP 异常"""
+    logger.warning(f"HTTP异常: {exc.status_code} - {exc.detail} - 路径: {request.url.path}")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """处理请求验证异常"""
+    logger.warning(f"请求验证失败: {exc.errors()} - 路径: {request.url.path}")
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()}
+    )
+
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    """处理所有未捕获的异常"""
+    logger.error(f"未处理的异常: {str(exc)} - 路径: {request.url.path}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"服务器内部错误: {str(exc)}"}
+    )
 
 
 @app.get("/")

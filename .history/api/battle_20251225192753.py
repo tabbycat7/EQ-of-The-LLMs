@@ -637,37 +637,26 @@ async def get_user_questions(
     """
     获取当前用户提出的所有历史问题
     """
-    import logging
-    logger = logging.getLogger(__name__)
-    
     try:
         # 获取当前登录用户ID
         try:
             current_user_id = get_current_user(req)
-            logger.info(f"获取用户问题列表，用户ID: {current_user_id}")
-        except HTTPException as e:
-            logger.warning(f"用户未登录: {str(e)}")
+        except HTTPException:
             raise HTTPException(status_code=401, detail="请先登录")
         
         # 查询当前用户的所有对战记录，按创建时间倒序
         from sqlalchemy import desc
-        try:
-            result = await db.execute(
-                select(Battle)
-                .where(Battle.user_id == current_user_id)
-                .order_by(desc(Battle.created_at))
-            )
-            battles = result.scalars().all()
-            logger.info(f"查询到 {len(battles)} 条对战记录")
-        except Exception as e:
-            logger.error(f"查询对战记录失败: {str(e)}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"查询对战记录失败: {str(e)}")
+        result = await db.execute(
+            select(Battle)
+            .where(Battle.user_id == current_user_id)
+            .order_by(desc(Battle.created_at))
+        )
+        battles = result.scalars().all()
         
         # 从对话历史中提取所有用户问题
         # 注意：每个 Battle 记录对应一轮对话，但 conversation 可能包含历史对话
         # 我们只提取每个 Battle 的最后一个用户消息（即当前轮次的问题）
         question_items = []
-        error_count = 0
         
         for battle in battles:
             try:
@@ -687,8 +676,7 @@ async def get_user_questions(
                         try:
                             if battle.created_at:
                                 created_at_str = battle.created_at.isoformat()
-                        except Exception as date_error:
-                            logger.warning(f"格式化日期失败 (battle {battle.id}): {str(date_error)}")
+                        except Exception:
                             created_at_str = ""
                         
                         question_items.append(QuestionItem(
@@ -699,20 +687,12 @@ async def get_user_questions(
                         ))
             except Exception as e:
                 # 如果某个 battle 处理出错，记录错误但继续处理其他 battle
-                error_count += 1
-                logger.error(f"处理 battle {battle.id if battle else 'unknown'} 时出错: {str(e)}", exc_info=True)
+                import logging
+                logging.error(f"处理 battle {battle.id} 时出错: {str(e)}")
                 continue
         
-        if error_count > 0:
-            logger.warning(f"处理了 {error_count} 个 battle 时出错，但继续返回其他问题")
-        
         # 按创建时间倒序排序（最新的在前）
-        try:
-            question_items.sort(key=lambda x: x.created_at, reverse=True)
-        except Exception as sort_error:
-            logger.warning(f"排序失败: {str(sort_error)}，返回未排序的结果")
-        
-        logger.info(f"成功提取 {len(question_items)} 个问题")
+        question_items.sort(key=lambda x: x.created_at, reverse=True)
         
         return QuestionsResponse(
             success=True,
@@ -724,7 +704,8 @@ async def get_user_questions(
         raise
     except Exception as e:
         # 捕获其他所有异常，返回友好的错误信息
-        logger.error(f"获取用户问题列表时发生未预期的错误: {str(e)}", exc_info=True)
+        import logging
+        logging.error(f"获取用户问题列表时出错: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"获取问题列表失败: {str(e)}")
 
 
