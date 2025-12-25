@@ -128,6 +128,18 @@ async def init_db():
             await conn.execute(text("ALTER TABLE battles ADD COLUMN is_question_valid INTEGER"))
         except Exception:
             pass  # 列已存在，忽略错误
+        
+        # 为model_ratings表添加wins_valid列（适用于所有数据库类型）
+        try:
+            await conn.execute(text("ALTER TABLE model_ratings ADD COLUMN wins_valid INTEGER DEFAULT 0"))
+        except Exception:
+            pass  # 列已存在，忽略错误
+        
+        # 为model_ratings表添加tie_valid列（适用于所有数据库类型）
+        try:
+            await conn.execute(text("ALTER TABLE model_ratings ADD COLUMN tie_valid INTEGER DEFAULT 0"))
+        except Exception:
+            pass  # 列已存在，忽略错误
     
     # 初始化模型评分和用户数据
     async with async_session_maker() as session:

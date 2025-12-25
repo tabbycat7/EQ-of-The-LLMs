@@ -23,6 +23,7 @@ class Battle(Base):
     model_b_response = Column(Text)  # 模型 B 的最后回复
     winner = Column(String(50), nullable=True)  # 胜者: "model_a", "model_b", "tie", None
     is_revealed = Column(Integer, default=0)  # 是否已揭示模型身份
+    is_question_valid = Column(Integer, nullable=True)  # 问题是否符合要求：1=符合，0=不符合，NULL=未标记
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

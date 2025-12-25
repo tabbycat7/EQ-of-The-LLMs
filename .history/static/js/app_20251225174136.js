@@ -1477,7 +1477,7 @@ async function updateQuestionValid(battleId, isValid) {
 
         const data = await response.json();
 
-        // 更新UI：使用 battle_id 定位对应的按钮（每个问题都有唯一的 battle_id）
+        // 更新UI：找到对应的按钮并更新选中状态
         const questionItem = document.querySelector(`.question-item[data-battle-id="${battleId}"]`);
         if (questionItem) {
             const validBtn = questionItem.querySelector('.valid-btn');
@@ -1493,8 +1493,6 @@ async function updateQuestionValid(battleId, isValid) {
             } else if (isValid === 0 && invalidBtn) {
                 invalidBtn.classList.add('selected');
             }
-        } else {
-            console.warn('未找到对应的问题项:', battleId);
         }
 
         showMessage('问题有效性标记已更新');

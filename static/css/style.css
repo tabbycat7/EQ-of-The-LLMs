@@ -1918,3 +1918,116 @@ body {
     text-align: center;
     padding: 16px;
 }
+
+/* 测评问题列表样式 */
+.questions-list {
+    background: var(--cg-surface);
+    border: 1px solid var(--cg-border);
+    border-radius: var(--cg-radius);
+    box-shadow: var(--cg-shadow);
+    overflow: hidden;
+}
+
+.questions-list-container {
+    padding: 16px;
+}
+
+.question-item {
+    background: var(--cg-surface);
+    border: 1px solid var(--cg-border);
+    border-radius: var(--cg-radius);
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: all 0.2s ease;
+}
+
+.question-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+}
+
+.question-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--cg-border);
+}
+
+.question-number {
+    font-weight: 750;
+    font-size: 16px;
+    color: var(--cg-text);
+}
+
+.question-date {
+    font-size: 13px;
+    color: var(--cg-muted);
+    font-weight: 500;
+}
+
+.question-content {
+    margin-top: 12px;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--cg-text);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.question-valid-buttons {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--cg-border);
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.question-valid-btn {
+    flex: 1;
+    padding: 10px 16px;
+    border: 2px solid var(--cg-border);
+    border-radius: 8px;
+    background: var(--cg-surface);
+    color: var(--cg-text);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.question-valid-btn:hover {
+    background: var(--cg-surface-2);
+    border-color: var(--primary);
+    transform: translateY(-1px);
+}
+
+.question-valid-btn.selected {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(15, 139, 255, 0.3);
+}
+
+.question-valid-btn.valid-btn.selected {
+    background: #10b981;
+    border-color: #10b981;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.question-valid-btn.invalid-btn.selected {
+    background: #ef4444;
+    border-color: #ef4444;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.question-valid-btn:active {
+    transform: translateY(0);
+}

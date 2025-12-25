@@ -111,6 +111,7 @@ class RatingService:
         }
         if winner == "model_a":
             update_data_a["wins"] = (model_a_rating.wins or 0) + 1
+            update_data_a["wins_valid"] = (model_a_rating.wins_valid or 0) + 1  # 有效胜利次数
         elif winner == "model_b":
             update_data_a["losses"] = (model_a_rating.losses or 0) + 1
         elif winner == "both_bad":
@@ -118,6 +119,7 @@ class RatingService:
             pass
         else:  # tie
             update_data_a["ties"] = (model_a_rating.ties or 0) + 1
+            update_data_a["tie_valid"] = (model_a_rating.tie_valid or 0) + 1  # 有效平局次数
         
         await db.execute(
             update(ModelRating)
@@ -132,6 +134,7 @@ class RatingService:
         }
         if winner == "model_b":
             update_data_b["wins"] = (model_b_rating.wins or 0) + 1
+            update_data_b["wins_valid"] = (model_b_rating.wins_valid or 0) + 1  # 有效胜利次数
         elif winner == "model_a":
             update_data_b["losses"] = (model_b_rating.losses or 0) + 1
         elif winner == "both_bad":
@@ -139,6 +142,7 @@ class RatingService:
             pass
         else:  # tie
             update_data_b["ties"] = (model_b_rating.ties or 0) + 1
+            update_data_b["tie_valid"] = (model_b_rating.tie_valid or 0) + 1  # 有效平局次数
         
         await db.execute(
             update(ModelRating)
@@ -214,6 +218,7 @@ class RatingService:
         }
         if winner == "model_a":
             update_data_a["wins"] = max(0, (model_a_rating.wins or 0) - 1)
+            update_data_a["wins_valid"] = max(0, (model_a_rating.wins_valid or 0) - 1)  # 有效胜利次数
         elif winner == "model_b":
             update_data_a["losses"] = max(0, (model_a_rating.losses or 0) - 1)
         elif winner == "both_bad":
@@ -221,6 +226,7 @@ class RatingService:
             pass
         else:  # tie
             update_data_a["ties"] = max(0, (model_a_rating.ties or 0) - 1)
+            update_data_a["tie_valid"] = max(0, (model_a_rating.tie_valid or 0) - 1)  # 有效平局次数
         
         await db.execute(
             update(ModelRating)
@@ -235,6 +241,7 @@ class RatingService:
         }
         if winner == "model_b":
             update_data_b["wins"] = max(0, (model_b_rating.wins or 0) - 1)
+            update_data_b["wins_valid"] = max(0, (model_b_rating.wins_valid or 0) - 1)  # 有效胜利次数
         elif winner == "model_a":
             update_data_b["losses"] = max(0, (model_b_rating.losses or 0) - 1)
         elif winner == "both_bad":
@@ -242,6 +249,7 @@ class RatingService:
             pass
         else:  # tie
             update_data_b["ties"] = max(0, (model_b_rating.ties or 0) - 1)
+            update_data_b["tie_valid"] = max(0, (model_b_rating.tie_valid or 0) - 1)  # 有效平局次数
         
         await db.execute(
             update(ModelRating)

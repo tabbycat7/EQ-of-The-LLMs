@@ -1423,7 +1423,7 @@ function renderQuestions(questions) {
         const isValid = item.is_question_valid;
         const validClass = isValid === 1 ? 'selected' : '';
         const invalidClass = isValid === 0 ? 'selected' : '';
-
+        
         html += `
             <div class="question-item" data-battle-id="${item.battle_id}">
                 <div class="question-item-header">
@@ -1456,7 +1456,7 @@ function renderQuestions(questions) {
 }
 
 // 更新问题有效性标记
-async function updateQuestionValid(battleId, isValid) {
+async function updateQuestionValid(battleId, isValid, questionId) {
     try {
         const response = await fetch('/api/battle/questions/update-valid', {
             method: 'POST',
@@ -1477,8 +1477,8 @@ async function updateQuestionValid(battleId, isValid) {
 
         const data = await response.json();
 
-        // 更新UI：使用 battle_id 定位对应的按钮（每个问题都有唯一的 battle_id）
-        const questionItem = document.querySelector(`.question-item[data-battle-id="${battleId}"]`);
+        // 更新UI：使用 questionId 精确定位对应的按钮
+        const questionItem = document.querySelector(`.question-item[data-question-id="${questionId}"]`);
         if (questionItem) {
             const validBtn = questionItem.querySelector('.valid-btn');
             const invalidBtn = questionItem.querySelector('.invalid-btn');
@@ -1494,7 +1494,7 @@ async function updateQuestionValid(battleId, isValid) {
                 invalidBtn.classList.add('selected');
             }
         } else {
-            console.warn('未找到对应的问题项:', battleId);
+            console.warn('未找到对应的问题项:', questionId);
         }
 
         showMessage('问题有效性标记已更新');

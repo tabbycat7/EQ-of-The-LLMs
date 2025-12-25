@@ -1423,7 +1423,7 @@ function renderQuestions(questions) {
         const isValid = item.is_question_valid;
         const validClass = isValid === 1 ? 'selected' : '';
         const invalidClass = isValid === 0 ? 'selected' : '';
-
+        
         html += `
             <div class="question-item" data-battle-id="${item.battle_id}">
                 <div class="question-item-header">
@@ -1476,17 +1476,17 @@ async function updateQuestionValid(battleId, isValid) {
         }
 
         const data = await response.json();
-
+        
         // 更新UI：使用 battle_id 定位对应的按钮（每个问题都有唯一的 battle_id）
         const questionItem = document.querySelector(`.question-item[data-battle-id="${battleId}"]`);
         if (questionItem) {
             const validBtn = questionItem.querySelector('.valid-btn');
             const invalidBtn = questionItem.querySelector('.invalid-btn');
-
+            
             // 移除所有选中状态
             if (validBtn) validBtn.classList.remove('selected');
             if (invalidBtn) invalidBtn.classList.remove('selected');
-
+            
             // 添加新的选中状态
             if (isValid === 1 && validBtn) {
                 validBtn.classList.add('selected');
@@ -1496,7 +1496,7 @@ async function updateQuestionValid(battleId, isValid) {
         } else {
             console.warn('未找到对应的问题项:', battleId);
         }
-
+        
         showMessage('问题有效性标记已更新');
     } catch (error) {
         console.error('更新问题有效性失败:', error);

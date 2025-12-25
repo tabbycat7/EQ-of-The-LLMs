@@ -119,33 +119,27 @@ class BattleHistoryResponse(BaseModel):
 
 class QuestionItem(BaseModel):
     """问题项"""
-    model_config = ConfigDict(protected_namespaces=())
-    
-    question: str
     battle_id: str
+    question: str
     created_at: str
-    is_question_valid: Optional[int] = None  # 1=符合要求，0=不符合要求，None=未标记
+    is_question_valid: Optional[int]  # 1=符合要求，0=不符合要求，None=未评价
 
 
-class QuestionsResponse(BaseModel):
+class QuestionListResponse(BaseModel):
     """问题列表响应"""
-    model_config = ConfigDict(protected_namespaces=())
-    
     success: bool
     questions: List[QuestionItem]
     total: int
 
 
-class UpdateQuestionValidRequest(BaseModel):
-    """更新问题有效性请求"""
+class UpdateQuestionValidityRequest(BaseModel):
+    """更新问题合理性请求"""
     battle_id: str
     is_question_valid: int  # 1=符合要求，0=不符合要求
 
 
-class UpdateQuestionValidResponse(BaseModel):
-    """更新问题有效性响应"""
-    model_config = ConfigDict(protected_namespaces=())
-    
+class UpdateQuestionValidityResponse(BaseModel):
+    """更新问题合理性响应"""
     success: bool
     message: str
 
@@ -521,15 +515,31 @@ async def submit_vote(
     db.add(vote)
     
     # 更新评分（积分制）
-    # 投票时总是计入评分，因为此时用户还没有机会标记问题有效性
-    # 如果用户后续在"测评问题"模块中标记问题为无效，会通过 update_question_valid 撤销评分
-    new_rating_a, new_rating_b = await RatingService.update_ratings(
-        db,
-        battle.model_a_id,
-        battle.model_b_id,
-        request.winner,
-        source="battle",
-    )
+    # 只有当 is_question_valid 为 1 时才更新评分
+    # 如果 is_question_valid 为 None（未评价）或 0（不符合要求），不更新评分
+    new_rating_a = None
+    new_rating_b = None
+    if battle.is_question_valid == 1:
+        new_rating_a, new_rating_b = await RatingService.update_ratings(
+            db,
+            battle.model_a_id,
+            battle.model_b_id,
+            request.winner,
+            source="battle",
+        )
+    else:
+        # 如果问题不合理或未评价，获取当前评分但不更新
+        from models.schemas import ModelRating
+        rating_result_a = await db.execute(
+            select(ModelRating).where(ModelRating.model_id == battle.model_a_id)
+        )
+        rating_result_b = await db.execute(
+            select(ModelRating).where(ModelRating.model_id == battle.model_b_id)
+        )
+        rating_a = rating_result_a.scalar_one_or_none()
+        rating_b = rating_result_b.scalar_one_or_none()
+        new_rating_a = rating_a.rating if rating_a else 0
+        new_rating_b = rating_b.rating if rating_b else 0
     
     # 更新 BattleEvaluation 记录中的 rating 值（仅用于记录投票后的评分快照，不用于计算）
     # 注意：四个维度的评分（perception, calibration, differentiation, regulation）不影响 model_rating
@@ -629,13 +639,13 @@ async def get_battle_history(
     )
 
 
-@router.get("/questions", response_model=QuestionsResponse)
+@router.get("/questions", response_model=QuestionListResponse)
 async def get_user_questions(
     req: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """
-    获取当前用户提出的所有历史问题
+    获取当前用户的所有历史问题（不包括大模型回复，只有用户问题）
     """
     # 获取当前登录用户ID
     try:
@@ -652,46 +662,36 @@ async def get_user_questions(
     )
     battles = result.scalars().all()
     
-    # 从对话历史中提取所有用户问题
-    # 注意：每个 Battle 记录对应一轮对话，但 conversation 可能包含历史对话
-    # 我们只提取每个 Battle 的最后一个用户消息（即当前轮次的问题）
-    question_items = []
-    
+    # 提取所有用户问题（每个battle只取第一个用户问题，因为每个battle对应一个问题）
+    questions = []
     for battle in battles:
         if battle.conversation:
-            # 找到最后一个用户消息（当前轮次的问题）
-            last_user_question = None
-            for msg in reversed(battle.conversation):  # 从后往前遍历
+            # 从对话历史中提取第一个用户问题
+            for msg in battle.conversation:
                 if msg.get("role") == "user":
-                    last_user_question = msg.get("content", "").strip()
-                    break  # 找到最后一个用户消息后停止
-            
-            if last_user_question:
-                question_items.append(QuestionItem(
-                    question=last_user_question,
-                    battle_id=battle.id,
-                    created_at=battle.created_at.isoformat() if battle.created_at else "",
-                    is_question_valid=battle.is_question_valid
-                ))
+                    questions.append(QuestionItem(
+                        battle_id=battle.id,
+                        question=msg.get("content", ""),
+                        created_at=battle.created_at.isoformat() if battle.created_at else "",
+                        is_question_valid=battle.is_question_valid
+                    ))
+                    break  # 只取第一个用户问题
     
-    # 按创建时间倒序排序（最新的在前）
-    question_items.sort(key=lambda x: x.created_at, reverse=True)
-    
-    return QuestionsResponse(
+    return QuestionListResponse(
         success=True,
-        questions=question_items,
-        total=len(question_items)
+        questions=questions,
+        total=len(questions)
     )
 
 
-@router.post("/questions/update-valid", response_model=UpdateQuestionValidResponse)
-async def update_question_valid(
-    request: UpdateQuestionValidRequest,
+@router.post("/question-validity", response_model=UpdateQuestionValidityResponse)
+async def update_question_validity(
+    request: UpdateQuestionValidityRequest,
     req: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """
-    更新问题的有效性标记
+    更新问题的合理性评价
     """
     # 获取当前登录用户ID
     try:
@@ -699,11 +699,11 @@ async def update_question_valid(
     except HTTPException:
         raise HTTPException(status_code=401, detail="请先登录")
     
-    # 验证is_question_valid的值
+    # 验证请求参数
     if request.is_question_valid not in [0, 1]:
-        raise HTTPException(status_code=400, detail="is_question_valid必须是0或1")
+        raise HTTPException(status_code=400, detail="is_question_valid 必须为 0 或 1")
     
-    # 查询对应的battle记录
+    # 查找对战记录
     result = await db.execute(
         select(Battle).where(Battle.id == request.battle_id)
     )
@@ -712,47 +712,40 @@ async def update_question_valid(
     if not battle:
         raise HTTPException(status_code=404, detail="对战记录不存在")
     
-    # 验证battle是否属于当前用户
+    # 验证对战记录是否属于当前用户
     if battle.user_id != current_user_id:
-        raise HTTPException(status_code=403, detail="无权修改此问题")
+        raise HTTPException(status_code=403, detail="无权访问此对战记录")
     
-    # 记录旧的有效性状态
-    old_is_valid = battle.is_question_valid
-    new_is_valid = request.is_question_valid
+    # 获取旧的评价状态
+    old_validity = battle.is_question_valid
+    new_validity = request.is_question_valid
     
-    # 判断有效性状态：1 或 NULL 为有效，0 为无效
-    old_valid = (old_is_valid is None or old_is_valid == 1)
-    new_valid = (new_is_valid == 1)  # 新值只能是 0 或 1，所以 1 为有效
+    # 更新问题合理性评价
+    battle.is_question_valid = new_validity
     
-    # 如果battle已经投票（winner不为None），需要重新计算评分
-    if battle.winner is not None:
-        # 如果从有效改为无效，需要撤销评分
-        if old_valid and not new_valid:
-            await RatingService.revert_ratings(
-                db,
-                battle.model_a_id,
-                battle.model_b_id,
-                battle.winner
-            )
-        # 如果从无效改为有效，需要添加评分
-        elif not old_valid and new_valid:
-            await RatingService.update_ratings(
-                db,
-                battle.model_a_id,
-                battle.model_b_id,
-                battle.winner,
-                source="battle",
-            )
-        # 如果从有效改为有效，或从无效改为无效，不需要改变评分
+    # 如果评价状态发生变化，需要更新评分
+    # 情况1：从非1（None或0）变为1，需要添加评分
+    # 情况2：从1变为非1（0），需要撤销评分（但由于需要重新计算所有评分，这里暂时不做处理，需要后续优化）
+    # 情况3：从None变为0，或从0变为None，不需要更新评分
+    if old_validity != new_validity:
+        if battle.winner is not None:  # 只有已投票的对战才需要更新评分
+            if old_validity != 1 and new_validity == 1:
+                # 从非1变为1：添加评分
+                await RatingService.update_ratings(
+                    db,
+                    battle.model_a_id,
+                    battle.model_b_id,
+                    battle.winner,
+                    source="battle",
+                )
+            # 注意：从1变为0的情况比较复杂，需要重新计算所有评分
+            # 暂时不处理，后续可以添加一个重新计算所有评分的功能
     
-    # 更新is_question_valid字段
-    battle.is_question_valid = request.is_question_valid
     await db.commit()
-    await db.refresh(battle)
     
-    return UpdateQuestionValidResponse(
+    return UpdateQuestionValidityResponse(
         success=True,
-        message="问题有效性标记已更新"
+        message="问题合理性评价已更新"
     )
 
 

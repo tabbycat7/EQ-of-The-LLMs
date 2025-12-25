@@ -16,6 +16,13 @@ let sideBySideInputSection = null;
 document.addEventListener('DOMContentLoaded', async () => {
     // 检查登录状态
     await checkLoginStatus();
+    
+    // 延迟再次检查管理员按钮（确保DOM完全加载）
+    setTimeout(() => {
+        if (currentUserId === 'admin' || String(currentUserId).toLowerCase() === 'admin') {
+            setupAdminPanel();
+        }
+    }, 500);
 });
 
 // 检查登录状态
@@ -180,8 +187,8 @@ async function initApp() {
     // 设置历史对话
     setupHistoryMode();
 
-    // 设置测评问题
-    setupQuestionsMode();
+    // 设置问题合理性自评
+    setupQuestionReviewMode();
 
     // 设置退出登录
     setupLogout();
@@ -196,24 +203,64 @@ async function initApp() {
 function setupLogout() {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
+        // 移除旧的事件监听器（如果存在）
+        logoutBtn.removeEventListener('click', handleLogout);
+        // 添加新的事件监听器
         logoutBtn.addEventListener('click', handleLogout);
+        console.log('Logout button event listener attached');
+    } else {
+        console.error('Logout button not found!');
+        // 延迟重试
+        setTimeout(() => {
+            const retryBtn = document.getElementById('logout-btn');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', handleLogout);
+                console.log('Logout button event listener attached (retry)');
+            }
+        }, 500);
     }
 }
 
 // 设置管理员面板（仅 admin 可见）
 function setupAdminPanel() {
     const addBtn = document.getElementById('admin-add-user-btn');
-    const adminModeBtn = document.querySelector('.mode-btn[data-mode="admin"]');
-    const dashboardModeBtn = document.querySelector('.mode-btn[data-mode="dashboard"]');
+    // 使用多种选择器方式确保能找到按钮
+    const adminModeBtn = document.querySelector('button[data-mode="admin"]') || 
+                         document.querySelector('.admin-nav-btn[data-mode="admin"]');
+    const dashboardModeBtn = document.querySelector('button[data-mode="dashboard"]') || 
+                              document.querySelector('.admin-nav-btn[data-mode="dashboard"]');
     const refreshDashboardBtn = document.getElementById('refresh-dashboard-btn');
 
+    // 调试信息
+    console.log('setupAdminPanel called, currentUserId:', currentUserId);
+    console.log('adminModeBtn found:', !!adminModeBtn);
+    console.log('dashboardModeBtn found:', !!dashboardModeBtn);
+
     // 仅 admin 显示"添加用户"和"数据看板"按钮
-    if (currentUserId === 'admin') {
+    // 使用宽松的比较，处理可能的字符串格式问题
+    const isAdmin = currentUserId === 'admin' || String(currentUserId).toLowerCase() === 'admin';
+    
+    if (isAdmin) {
+        console.log('User is admin, showing admin buttons');
         if (adminModeBtn) {
             adminModeBtn.style.display = 'inline-flex';
+            adminModeBtn.style.visibility = 'visible';
+            console.log('Admin mode button displayed');
+        } else {
+            console.error('Admin mode button not found!');
+            // 尝试通过类名查找
+            const allAdminBtns = document.querySelectorAll('.admin-nav-btn');
+            console.log('Found admin-nav-btn elements:', allAdminBtns.length);
+            allAdminBtns.forEach((btn, idx) => {
+                console.log(`Button ${idx}:`, btn.getAttribute('data-mode'), btn);
+            });
         }
         if (dashboardModeBtn) {
             dashboardModeBtn.style.display = 'inline-flex';
+            dashboardModeBtn.style.visibility = 'visible';
+            console.log('Dashboard mode button displayed');
+        } else {
+            console.error('Dashboard mode button not found!');
         }
         if (addBtn) {
             addBtn.onclick = handleAdminAddUser;
@@ -222,6 +269,7 @@ function setupAdminPanel() {
             refreshDashboardBtn.onclick = loadDashboard;
         }
     } else {
+        console.log('User is not admin, hiding admin buttons. currentUserId:', currentUserId);
         if (adminModeBtn) {
             adminModeBtn.style.display = 'none';
         }
@@ -589,8 +637,8 @@ function setupModeSelector() {
             if (mode === 'history') {
                 loadHistory();
             }
-            // 如果切换到测评问题，加载问题列表
-            if (mode === 'questions') {
+            // 如果切换到问题合理性自评，加载问题列表
+            if (mode === 'question-review') {
                 loadQuestions();
             }
             // 如果切换到管理员模式，清空表单
@@ -1367,140 +1415,6 @@ function setupHistoryMode() {
     const refreshBtn = document.getElementById('refresh-history-btn');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', loadHistory);
-    }
-}
-
-// ===== 测评问题模式 =====
-function setupQuestionsMode() {
-    const refreshBtn = document.getElementById('refresh-questions-btn');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', loadQuestions);
-    }
-}
-
-async function loadQuestions() {
-    const container = document.getElementById('questions-content');
-    if (!container) {
-        console.error('找不到 questions-content 容器');
-        return;
-    }
-
-    container.innerHTML = '<div class="loading">加载问题列表...</div>';
-
-    try {
-        const response = await fetch('/api/battle/questions', {
-            credentials: 'include'  // 确保包含 cookies（用于 session 认证）
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ detail: '加载问题列表失败' }));
-            throw new Error(errorData.detail || '加载问题列表失败');
-        }
-
-        const data = await response.json();
-        console.log('问题列表数据:', data);
-        renderQuestions(data.questions || []);
-
-    } catch (error) {
-        console.error('加载问题列表失败:', error);
-        container.innerHTML = `<div class="empty-state">加载失败：${error.message}</div>`;
-    }
-}
-
-function renderQuestions(questions) {
-    const container = document.getElementById('questions-content');
-    if (!container) return;
-
-    if (!questions || questions.length === 0) {
-        container.innerHTML = '<div class="empty-state">暂无问题记录，开始对战来提出问题吧！</div>';
-        return;
-    }
-
-    let html = '<div class="questions-list-container">';
-
-    questions.forEach((item, index) => {
-        const createdDate = new Date(item.created_at).toLocaleString('zh-CN');
-        const isValid = item.is_question_valid;
-        const validClass = isValid === 1 ? 'selected' : '';
-        const invalidClass = isValid === 0 ? 'selected' : '';
-
-        html += `
-            <div class="question-item" data-battle-id="${item.battle_id}">
-                <div class="question-item-header">
-                    <div class="question-number">问题 ${index + 1}</div>
-                    <div class="question-date">${createdDate}</div>
-                </div>
-                <div class="question-content">
-                    ${escapeHtml(item.question)}
-                </div>
-                <div class="question-valid-buttons">
-                    <button class="question-valid-btn valid-btn ${validClass}" 
-                            data-battle-id="${item.battle_id}" 
-                            data-value="1"
-                            onclick="updateQuestionValid('${item.battle_id}', 1)">
-                        ✓ 符合要求
-                    </button>
-                    <button class="question-valid-btn invalid-btn ${invalidClass}" 
-                            data-battle-id="${item.battle_id}" 
-                            data-value="0"
-                            onclick="updateQuestionValid('${item.battle_id}', 0)">
-                        ✗ 不符合要求
-                    </button>
-                </div>
-            </div>
-        `;
-    });
-
-    html += '</div>';
-    container.innerHTML = html;
-}
-
-// 更新问题有效性标记
-async function updateQuestionValid(battleId, isValid) {
-    try {
-        const response = await fetch('/api/battle/questions/update-valid', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-                battle_id: battleId,
-                is_question_valid: isValid
-            })
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ detail: '更新失败' }));
-            throw new Error(errorData.detail || '更新失败');
-        }
-
-        const data = await response.json();
-
-        // 更新UI：使用 battle_id 定位对应的按钮（每个问题都有唯一的 battle_id）
-        const questionItem = document.querySelector(`.question-item[data-battle-id="${battleId}"]`);
-        if (questionItem) {
-            const validBtn = questionItem.querySelector('.valid-btn');
-            const invalidBtn = questionItem.querySelector('.invalid-btn');
-
-            // 移除所有选中状态
-            if (validBtn) validBtn.classList.remove('selected');
-            if (invalidBtn) invalidBtn.classList.remove('selected');
-
-            // 添加新的选中状态
-            if (isValid === 1 && validBtn) {
-                validBtn.classList.add('selected');
-            } else if (isValid === 0 && invalidBtn) {
-                invalidBtn.classList.add('selected');
-            }
-        } else {
-            console.warn('未找到对应的问题项:', battleId);
-        }
-
-        showMessage('问题有效性标记已更新');
-    } catch (error) {
-        console.error('更新问题有效性失败:', error);
-        showError(error.message || '更新失败，请重试');
     }
 }
 

@@ -521,15 +521,31 @@ async def submit_vote(
     db.add(vote)
     
     # 更新评分（积分制）
-    # 投票时总是计入评分，因为此时用户还没有机会标记问题有效性
-    # 如果用户后续在"测评问题"模块中标记问题为无效，会通过 update_question_valid 撤销评分
-    new_rating_a, new_rating_b = await RatingService.update_ratings(
-        db,
-        battle.model_a_id,
-        battle.model_b_id,
-        request.winner,
-        source="battle",
-    )
+    # 只选择有效的问题计算（标记为1），如果is_question_valid标记为NULL，则默认有效
+    # 如果is_question_valid为0，则不更新评分
+    new_rating_a = None
+    new_rating_b = None
+    if battle.is_question_valid is None or battle.is_question_valid == 1:
+        new_rating_a, new_rating_b = await RatingService.update_ratings(
+            db,
+            battle.model_a_id,
+            battle.model_b_id,
+            request.winner,
+            source="battle",
+        )
+    else:
+        # is_question_valid 为 0，不更新评分，使用当前评分
+        from models.schemas import ModelRating
+        rating_result_a = await db.execute(
+            select(ModelRating).where(ModelRating.model_id == battle.model_a_id)
+        )
+        rating_result_b = await db.execute(
+            select(ModelRating).where(ModelRating.model_id == battle.model_b_id)
+        )
+        rating_a = rating_result_a.scalar_one_or_none()
+        rating_b = rating_result_b.scalar_one_or_none()
+        new_rating_a = rating_a.rating if rating_a else config.INITIAL_RATING
+        new_rating_b = rating_b.rating if rating_b else config.INITIAL_RATING
     
     # 更新 BattleEvaluation 记录中的 rating 值（仅用于记录投票后的评分快照，不用于计算）
     # 注意：四个维度的评分（perception, calibration, differentiation, regulation）不影响 model_rating
@@ -715,35 +731,6 @@ async def update_question_valid(
     # 验证battle是否属于当前用户
     if battle.user_id != current_user_id:
         raise HTTPException(status_code=403, detail="无权修改此问题")
-    
-    # 记录旧的有效性状态
-    old_is_valid = battle.is_question_valid
-    new_is_valid = request.is_question_valid
-    
-    # 判断有效性状态：1 或 NULL 为有效，0 为无效
-    old_valid = (old_is_valid is None or old_is_valid == 1)
-    new_valid = (new_is_valid == 1)  # 新值只能是 0 或 1，所以 1 为有效
-    
-    # 如果battle已经投票（winner不为None），需要重新计算评分
-    if battle.winner is not None:
-        # 如果从有效改为无效，需要撤销评分
-        if old_valid and not new_valid:
-            await RatingService.revert_ratings(
-                db,
-                battle.model_a_id,
-                battle.model_b_id,
-                battle.winner
-            )
-        # 如果从无效改为有效，需要添加评分
-        elif not old_valid and new_valid:
-            await RatingService.update_ratings(
-                db,
-                battle.model_a_id,
-                battle.model_b_id,
-                battle.winner,
-                source="battle",
-            )
-        # 如果从有效改为有效，或从无效改为无效，不需要改变评分
     
     # 更新is_question_valid字段
     battle.is_question_valid = request.is_question_valid

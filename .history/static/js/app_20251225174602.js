@@ -1423,9 +1423,13 @@ function renderQuestions(questions) {
         const isValid = item.is_question_valid;
         const validClass = isValid === 1 ? 'selected' : '';
         const invalidClass = isValid === 0 ? 'selected' : '';
-
+        
+        // 为每个问题生成唯一标识符：使用 battle_id + 问题内容的哈希值
+        // 为了简化，我们使用索引作为唯一标识符的一部分
+        const questionId = `question-${item.battle_id}-${index}`;
+        
         html += `
-            <div class="question-item" data-battle-id="${item.battle_id}">
+            <div class="question-item" data-battle-id="${item.battle_id}" data-question-id="${questionId}">
                 <div class="question-item-header">
                     <div class="question-number">问题 ${index + 1}</div>
                     <div class="question-date">${createdDate}</div>
@@ -1436,14 +1440,16 @@ function renderQuestions(questions) {
                 <div class="question-valid-buttons">
                     <button class="question-valid-btn valid-btn ${validClass}" 
                             data-battle-id="${item.battle_id}" 
+                            data-question-id="${questionId}"
                             data-value="1"
-                            onclick="updateQuestionValid('${item.battle_id}', 1)">
+                            onclick="updateQuestionValid('${item.battle_id}', 1, '${questionId}')">
                         ✓ 符合要求
                     </button>
                     <button class="question-valid-btn invalid-btn ${invalidClass}" 
                             data-battle-id="${item.battle_id}" 
+                            data-question-id="${questionId}"
                             data-value="0"
-                            onclick="updateQuestionValid('${item.battle_id}', 0)">
+                            onclick="updateQuestionValid('${item.battle_id}', 0, '${questionId}')">
                         ✗ 不符合要求
                     </button>
                 </div>
@@ -1477,7 +1483,7 @@ async function updateQuestionValid(battleId, isValid) {
 
         const data = await response.json();
 
-        // 更新UI：使用 battle_id 定位对应的按钮（每个问题都有唯一的 battle_id）
+        // 更新UI：找到对应的按钮并更新选中状态
         const questionItem = document.querySelector(`.question-item[data-battle-id="${battleId}"]`);
         if (questionItem) {
             const validBtn = questionItem.querySelector('.valid-btn');
@@ -1493,8 +1499,6 @@ async function updateQuestionValid(battleId, isValid) {
             } else if (isValid === 0 && invalidBtn) {
                 invalidBtn.classList.add('selected');
             }
-        } else {
-            console.warn('未找到对应的问题项:', battleId);
         }
 
         showMessage('问题有效性标记已更新');

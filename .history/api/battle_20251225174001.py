@@ -521,8 +521,6 @@ async def submit_vote(
     db.add(vote)
     
     # 更新评分（积分制）
-    # 投票时总是计入评分，因为此时用户还没有机会标记问题有效性
-    # 如果用户后续在"测评问题"模块中标记问题为无效，会通过 update_question_valid 撤销评分
     new_rating_a, new_rating_b = await RatingService.update_ratings(
         db,
         battle.model_a_id,
@@ -653,26 +651,20 @@ async def get_user_questions(
     battles = result.scalars().all()
     
     # 从对话历史中提取所有用户问题
-    # 注意：每个 Battle 记录对应一轮对话，但 conversation 可能包含历史对话
-    # 我们只提取每个 Battle 的最后一个用户消息（即当前轮次的问题）
     question_items = []
     
     for battle in battles:
         if battle.conversation:
-            # 找到最后一个用户消息（当前轮次的问题）
-            last_user_question = None
-            for msg in reversed(battle.conversation):  # 从后往前遍历
+            for msg in battle.conversation:
                 if msg.get("role") == "user":
-                    last_user_question = msg.get("content", "").strip()
-                    break  # 找到最后一个用户消息后停止
-            
-            if last_user_question:
-                question_items.append(QuestionItem(
-                    question=last_user_question,
-                    battle_id=battle.id,
-                    created_at=battle.created_at.isoformat() if battle.created_at else "",
-                    is_question_valid=battle.is_question_valid
-                ))
+                    question = msg.get("content", "").strip()
+                    if question:
+                        question_items.append(QuestionItem(
+                            question=question,
+                            battle_id=battle.id,
+                            created_at=battle.created_at.isoformat() if battle.created_at else "",
+                            is_question_valid=battle.is_question_valid
+                        ))
     
     # 按创建时间倒序排序（最新的在前）
     question_items.sort(key=lambda x: x.created_at, reverse=True)
@@ -715,35 +707,6 @@ async def update_question_valid(
     # 验证battle是否属于当前用户
     if battle.user_id != current_user_id:
         raise HTTPException(status_code=403, detail="无权修改此问题")
-    
-    # 记录旧的有效性状态
-    old_is_valid = battle.is_question_valid
-    new_is_valid = request.is_question_valid
-    
-    # 判断有效性状态：1 或 NULL 为有效，0 为无效
-    old_valid = (old_is_valid is None or old_is_valid == 1)
-    new_valid = (new_is_valid == 1)  # 新值只能是 0 或 1，所以 1 为有效
-    
-    # 如果battle已经投票（winner不为None），需要重新计算评分
-    if battle.winner is not None:
-        # 如果从有效改为无效，需要撤销评分
-        if old_valid and not new_valid:
-            await RatingService.revert_ratings(
-                db,
-                battle.model_a_id,
-                battle.model_b_id,
-                battle.winner
-            )
-        # 如果从无效改为有效，需要添加评分
-        elif not old_valid and new_valid:
-            await RatingService.update_ratings(
-                db,
-                battle.model_a_id,
-                battle.model_b_id,
-                battle.winner,
-                source="battle",
-            )
-        # 如果从有效改为有效，或从无效改为无效，不需要改变评分
     
     # 更新is_question_valid字段
     battle.is_question_valid = request.is_question_valid
