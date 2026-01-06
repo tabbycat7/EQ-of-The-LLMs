@@ -83,7 +83,6 @@ async def init_db():
         # 如果是 MySQL，确保所有 TEXT 列使用 utf8mb4
         if "mysql" in config.DATABASE_URL.lower():
             try:
-                await conn.execute(text("ALTER TABLE user_info CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
                 await conn.execute(text("ALTER TABLE battle_records CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
                 await conn.execute(text("ALTER TABLE votes CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
                 await conn.execute(text("ALTER TABLE model_ratings CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))

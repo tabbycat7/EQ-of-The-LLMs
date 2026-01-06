@@ -10,38 +10,7 @@
 </head>
 
 <body>
-    <!-- 登录界面 -->
-    <div id="login-modal" class="login-modal" style="display: flex;">
-        <div class="login-container">
-            <div class="login-header">
-                <div class="brand">
-                    <div class="brand-icon">🤖</div>
-                    <div class="brand-text">
-                        <div class="brand-title">LMArena</div>
-                        <div class="brand-subtitle">AI 模型对战评测平台</div>
-                    </div>
-                </div>
-            </div>
-            <div class="login-form">
-                <h2>用户登录</h2>
-                <form id="login-form">
-                    <div class="form-group">
-                        <label for="login-user-id">用户ID</label>
-                        <input type="text" id="login-user-id" placeholder="请输入用户ID" required autocomplete="username">
-                    </div>
-                    <div class="form-group">
-                        <label for="login-password">密码</label>
-                        <input type="password" id="login-password" placeholder="请输入密码" required
-                            autocomplete="current-password">
-                    </div>
-                    <div id="login-error" class="error-message" style="display: none;"></div>
-                    <button type="submit" class="primary-btn" id="login-submit-btn">登录</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <div class="app-shell" id="app-shell" style="display: none;">
+    <div class="app-shell" id="app-shell">
         <!-- ChatGPT 风格侧边栏 -->
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -49,7 +18,7 @@
                     <div class="brand-icon">🤖</div>
                     <div class="brand-text">
                         <div class="brand-title">LMArena</div>
-                        <div class="brand-subtitle">匿名对战 · 偏好投票 · 积分榜</div>
+                        <div class="brand-subtitle">教案评价 · 偏好投票 · 积分榜</div>
                     </div>
                 </div>
             </div>
@@ -57,7 +26,7 @@
             <nav class="sidebar-nav">
                 <button class="mode-btn nav-btn active" data-mode="battle">
                     <span class="nav-icon">⚔️</span>
-                    <span class="nav-label">匿名对战</span>
+                    <span class="nav-label">教案质量评价</span>
                 </button>
                 <button class="mode-btn nav-btn" data-mode="history">
                     <span class="nav-icon">📜</span>
@@ -90,10 +59,6 @@
 
             <div class="sidebar-footer">
                 <div class="sidebar-note">提示：仅 Battle 投票计入积分</div>
-                <button id="logout-btn" class="logout-btn" title="退出登录">
-                    <span class="logout-icon">🚪</span>
-                    <span class="logout-label">退出登录</span>
-                </button>
                 <div class="sidebar-copy">© 2024 LMArena</div>
             </div>
         </aside>
@@ -106,11 +71,11 @@
             </header>
 
             <div class="main-content">
-                <!-- 匿名对战模式 -->
+                <!-- 教案质量评价模式 -->
                 <section id="battle-mode" class="mode-content active">
                     <div class="mode-header">
                         <div class="mode-title">
-                            <h2>匿名对战</h2>
+                            <h2>教案质量评价</h2>
                             <p>系统随机两模型匿名回答；你投票决定更优。</p>
                         </div>
                         <div id="battle-start">
@@ -255,7 +220,7 @@
                     <div class="mode-header">
                         <div class="mode-title">
                             <h2>排行榜</h2>
-                            <p>仅基于匿名对战（Battle）投票累计积分，实时更新。</p>
+                            <p>仅基于教案评价投票累计积分，实时更新。</p>
                         </div>
                         <button id="refresh-leaderboard-btn" class="secondary-btn">刷新</button>
                     </div>

@@ -313,6 +313,13 @@ async def battle_chat(
     battle.conversation = new_history
     battle.model_a_response = response_a
     battle.model_b_response = response_b
+    
+    # 更新用户提问次数（在对话成功后再更新，保证一致性）
+    if current_user_id is not None:
+        result = await db.execute(select(User).where(User.id == current_user_id))
+        user = result.scalar_one_or_none()
+        if user:
+            user.question_count = (user.question_count or 0) + 1
 
     await db.commit()
 
@@ -330,16 +337,10 @@ async def submit_evaluation(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    提交测评维度数据（教案评价 - 5点李克特量表）
+    提交测评维度数据
     
-    注意：五个维度的评分（executable, student_fit, practical, local_integration, tech_use）
-    采用5点李克特量表（1-5分），会直接保存到 battle_records 表中。
-    - 1分：非常不符合/完全未达到
-    - 2分：不太符合/达到较少
-    - 3分：一般/中等水平
-    - 4分：较符合/达到较好
-    - 5分：非常符合/达到很好
-    
+    注意：四个维度的评分（perception, calibration, differentiation, regulation）
+    会直接保存到 battle_records 表中，不再使用单独的 battle_evaluations 表。
     这些评分仅用于记录和分析，不会影响 model_rating 的计算。
     model_rating 只根据投票结果（winner）更新。
     """
@@ -359,20 +360,18 @@ async def submit_evaluation(
     # 更新模型 A 的测评维度
     if "model_a" in evaluation_data:
         model_a_eval = evaluation_data["model_a"]
-        battle.model_a_executable = model_a_eval.get("executable")
-        battle.model_a_student_fit = model_a_eval.get("student_fit")
-        battle.model_a_practical = model_a_eval.get("practical")
-        battle.model_a_local_integration = model_a_eval.get("local_integration")
-        battle.model_a_tech_use = model_a_eval.get("tech_use")
+        battle.model_a_perception = model_a_eval.get("perception")
+        battle.model_a_calibration = model_a_eval.get("calibration")
+        battle.model_a_differentiation = model_a_eval.get("differentiation")
+        battle.model_a_regulation = model_a_eval.get("regulation")
     
     # 更新模型 B 的测评维度
     if "model_b" in evaluation_data:
         model_b_eval = evaluation_data["model_b"]
-        battle.model_b_executable = model_b_eval.get("executable")
-        battle.model_b_student_fit = model_b_eval.get("student_fit")
-        battle.model_b_practical = model_b_eval.get("practical")
-        battle.model_b_local_integration = model_b_eval.get("local_integration")
-        battle.model_b_tech_use = model_b_eval.get("tech_use")
+        battle.model_b_perception = model_b_eval.get("perception")
+        battle.model_b_calibration = model_b_eval.get("calibration")
+        battle.model_b_differentiation = model_b_eval.get("differentiation")
+        battle.model_b_regulation = model_b_eval.get("regulation")
     
     await db.commit()
     
@@ -403,6 +402,11 @@ async def submit_vote(
     
     if not battle:
         raise HTTPException(status_code=404, detail="对战会话不存在")
+    
+    # 验证会话是否属于当前用户（如果用户已登录）
+    if current_user_id is not None:
+        if battle.user_id != current_user_id:
+            raise HTTPException(status_code=403, detail="无权访问此对战会话")
     
     # 检查是否已经投过票（winner 不为 None 且不为空字符串）
     # 如果已经投过票，采用幂等性处理：返回成功响应而不是错误
@@ -723,6 +727,13 @@ async def reveal_models(
     揭示对战中的模型身份
     只有投票后才能查看
     """
+    # 获取当前登录用户ID
+    current_user_id = None
+    try:
+        current_user_id = get_current_user(req)
+    except HTTPException:
+        pass  # 如果未登录，user_id为None
+    
     result = await db.execute(
         select(BattleRecord).where(BattleRecord.id == session_id)
     )

@@ -62,7 +62,7 @@ async def init_db():
     print("初始化数据库...")
     
     # 只导入需要的表（新表结构）
-    from .schemas import UserInfo, BattleRecord, Vote, ModelRating, ChatSession, SideBySideVote
+    from .schemas import BattleRecord, Vote, ModelRating, ChatSession, SideBySideVote
     
     async with engine.begin() as conn:
         # 如果是 MySQL，先设置数据库和表的字符集
@@ -83,15 +83,14 @@ async def init_db():
         # 如果是 MySQL，确保所有 TEXT 列使用 utf8mb4
         if "mysql" in config.DATABASE_URL.lower():
             try:
-                await conn.execute(text("ALTER TABLE user_info CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
                 await conn.execute(text("ALTER TABLE battle_records CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
                 await conn.execute(text("ALTER TABLE votes CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
                 await conn.execute(text("ALTER TABLE model_ratings CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
                 await conn.execute(text("ALTER TABLE chat_sessions CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
                 await conn.execute(text("ALTER TABLE sidebyside_votes CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
-                print("MySQL charset configured")
+                print("✓ MySQL字符集配置完成")
             except Exception as e:
-                print(f"MySQL charset configuration skipped: {e}")
+                print(f"⊘ MySQL字符集配置跳过: {e}")
     
     print("数据库初始化完成！")
     

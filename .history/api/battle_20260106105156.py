@@ -330,16 +330,10 @@ async def submit_evaluation(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    提交测评维度数据（教案评价 - 5点李克特量表）
+    提交测评维度数据（教案评价）
     
     注意：五个维度的评分（executable, student_fit, practical, local_integration, tech_use）
-    采用5点李克特量表（1-5分），会直接保存到 battle_records 表中。
-    - 1分：非常不符合/完全未达到
-    - 2分：不太符合/达到较少
-    - 3分：一般/中等水平
-    - 4分：较符合/达到较好
-    - 5分：非常符合/达到很好
-    
+    会直接保存到 battle_records 表中，不再使用单独的 battle_evaluations 表。
     这些评分仅用于记录和分析，不会影响 model_rating 的计算。
     model_rating 只根据投票结果（winner）更新。
     """

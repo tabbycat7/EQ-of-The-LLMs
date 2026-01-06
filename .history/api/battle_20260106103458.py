@@ -313,6 +313,13 @@ async def battle_chat(
     battle.conversation = new_history
     battle.model_a_response = response_a
     battle.model_b_response = response_b
+    
+    # 更新用户提问次数（在对话成功后再更新，保证一致性）
+    if current_user_id is not None:
+        result = await db.execute(select(User).where(User.id == current_user_id))
+        user = result.scalar_one_or_none()
+        if user:
+            user.question_count = (user.question_count or 0) + 1
 
     await db.commit()
 
@@ -330,16 +337,10 @@ async def submit_evaluation(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    提交测评维度数据（教案评价 - 5点李克特量表）
+    提交测评维度数据（教案评价）
     
     注意：五个维度的评分（executable, student_fit, practical, local_integration, tech_use）
-    采用5点李克特量表（1-5分），会直接保存到 battle_records 表中。
-    - 1分：非常不符合/完全未达到
-    - 2分：不太符合/达到较少
-    - 3分：一般/中等水平
-    - 4分：较符合/达到较好
-    - 5分：非常符合/达到很好
-    
+    会直接保存到 battle_records 表中，不再使用单独的 battle_evaluations 表。
     这些评分仅用于记录和分析，不会影响 model_rating 的计算。
     model_rating 只根据投票结果（winner）更新。
     """
@@ -403,6 +404,11 @@ async def submit_vote(
     
     if not battle:
         raise HTTPException(status_code=404, detail="对战会话不存在")
+    
+    # 验证会话是否属于当前用户（如果用户已登录）
+    if current_user_id is not None:
+        if battle.user_id != current_user_id:
+            raise HTTPException(status_code=403, detail="无权访问此对战会话")
     
     # 检查是否已经投过票（winner 不为 None 且不为空字符串）
     # 如果已经投过票，采用幂等性处理：返回成功响应而不是错误
@@ -723,6 +729,13 @@ async def reveal_models(
     揭示对战中的模型身份
     只有投票后才能查看
     """
+    # 获取当前登录用户ID
+    current_user_id = None
+    try:
+        current_user_id = get_current_user(req)
+    except HTTPException:
+        pass  # 如果未登录，user_id为None
+    
     result = await db.execute(
         select(BattleRecord).where(BattleRecord.id == session_id)
     )

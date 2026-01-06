@@ -2,11 +2,11 @@
 
 // 全局状态
 let currentMode = 'battle';
-let currentUserId = null; // 当前登录用户ID
 let battleSessionId = null;
 let sideBySideSessionId = null;
 let availableModels = [];
 let sideBySideVoted = false;
+let hasUserInfo = false;  // 用户是否已填写信息
 
 // 输入区域引用，便于统一显示/隐藏
 let battleInputSection = null;
@@ -14,153 +14,154 @@ let sideBySideInputSection = null;
 
 // 初始化应用
 document.addEventListener('DOMContentLoaded', async () => {
-    // 检查登录状态
-    await checkLoginStatus();
+    // 检查用户是否已填写信息
+    await checkUserInfo();
 });
 
-// 检查登录状态
-async function checkLoginStatus() {
-    // 默认显示登录界面（防止闪烁）
-    showLoginModal();
-
+// 检查用户信息
+async function checkUserInfo() {
     try {
-        const response = await fetch('/api/auth/check', {
-            credentials: 'include'  // 重要：包含cookies
-        });
+        const response = await fetch('/api/user/check');
         const data = await response.json();
-
-        if (data.success && data.user_id) {
-            // 记录当前登录用户ID
-            currentUserId = data.user_id;
-            // 已登录，显示主界面
-            showMainApp();
-            // 初始化应用
+        
+        if (data.has_info) {
+            // 用户已填写信息，直接进入应用
+            hasUserInfo = true;
             await initApp();
         } else {
-            // 未登录，清空当前用户ID
-            currentUserId = null;
-            // 未登录，保持显示登录界面（已经在上面设置了）
-            // 确保登录界面可见
-            showLoginModal();
+            // 显示用户信息收集表单
+            showUserInfoForm();
         }
     } catch (error) {
-        console.error('检查登录状态失败:', error);
-        // 出错时保持显示登录界面（已经在上面设置了）
-        showLoginModal();
+        console.error('检查用户信息失败:', error);
+        // 出错时也显示表单
+        showUserInfoForm();
     }
 }
 
-// 显示登录界面
-function showLoginModal() {
-    const loginModal = document.getElementById('login-modal');
+// 显示用户信息收集表单
+function showUserInfoForm() {
     const appShell = document.getElementById('app-shell');
-    if (loginModal) loginModal.style.display = 'flex';
-    if (appShell) appShell.style.display = 'none';
-
-    // 重置登录表单：清空输入框和错误信息，重置按钮状态
-    const userIdInput = document.getElementById('login-user-id');
-    const passwordInput = document.getElementById('login-password');
-    const submitBtn = document.getElementById('login-submit-btn');
-    const errorDiv = document.getElementById('login-error');
-
-    if (userIdInput) userIdInput.value = '';
-    if (passwordInput) passwordInput.value = '';
-    if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.textContent = '登录';
-    }
-    if (errorDiv) {
-        errorDiv.textContent = '';
-        errorDiv.style.display = 'none';
-    }
-
-    // 设置登录表单提交事件
-    const loginForm = document.getElementById('login-form');
-    if (loginForm) {
-        loginForm.onsubmit = handleLogin;
-    }
-
-    // 聚焦到用户ID输入框，方便用户输入
-    if (userIdInput) {
-        setTimeout(() => userIdInput.focus(), 100);
-    }
+    appShell.innerHTML = `
+        <div class="user-info-modal">
+            <div class="user-info-container">
+                <div class="user-info-header">
+                    <h2>欢迎使用 AI 教案评测平台</h2>
+                    <p>请先填写您的基本信息，以便更好地为您服务</p>
+                </div>
+                
+                <form id="user-info-form" class="user-info-form">
+                    <div class="form-group">
+                        <label for="region">地区 *</label>
+                        <input type="text" id="region" name="region" placeholder="例如：河南省郑州市" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="school">学校 *</label>
+                        <input type="text" id="school" name="school" placeholder="例如：XX小学" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="subject">学科 *</label>
+                        <select id="subject" name="subject" required>
+                            <option value="">请选择</option>
+                            <option value="语文">语文</option>
+                            <option value="数学">数学</option>
+                            <option value="英语">英语</option>
+                            <option value="物理">物理</option>
+                            <option value="化学">化学</option>
+                            <option value="生物">生物</option>
+                            <option value="历史">历史</option>
+                            <option value="地理">地理</option>
+                            <option value="政治">政治</option>
+                            <option value="信息科技">信息科技</option>
+                            <option value="音体美/综合实践">音体美/综合实践</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="grade">授课年级 *</label>
+                        <select id="grade" name="grade" required>
+                            <option value="">请选择</option>
+                            <option value="一年级">一年级</option>
+                            <option value="二年级">二年级</option>
+                            <option value="三年级">三年级</option>
+                            <option value="四年级">四年级</option>
+                            <option value="五年级">五年级</option>
+                            <option value="六年级">六年级</option>
+                            <option value="七年级">七年级</option>
+                            <option value="八年级">八年级</option>
+                            <option value="九年级">九年级</option>
+                            <option value="高一">高一</option>
+                            <option value="高二">高二</option>
+                            <option value="高三">高三</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="primary-btn">开始使用</button>
+                    </div>
+                    
+                    <div id="form-error" class="form-error" style="display: none;"></div>
+                </form>
+            </div>
+        </div>
+    `;
+    
+    // 设置表单提交事件
+    const form = document.getElementById('user-info-form');
+    form.addEventListener('submit', handleUserInfoSubmit);
 }
 
-// 显示主应用界面
-function showMainApp() {
-    const loginModal = document.getElementById('login-modal');
-    const appShell = document.getElementById('app-shell');
-    if (loginModal) loginModal.style.display = 'none';
-    if (appShell) appShell.style.display = 'flex';
-}
-
-// 处理登录
-async function handleLogin(e) {
+// 处理用户信息提交
+async function handleUserInfoSubmit(e) {
     e.preventDefault();
-
-    const userIdInput = document.getElementById('login-user-id');
-    const passwordInput = document.getElementById('login-password');
-    const submitBtn = document.getElementById('login-submit-btn');
-    const errorDiv = document.getElementById('login-error');
-
-    const userId = userIdInput.value.trim();
-    const password = passwordInput.value;
-
-    if (!userId || !password) {
-        showLoginError('请输入用户ID和密码');
+    
+    const formData = {
+        region: document.getElementById('region').value.trim(),
+        school: document.getElementById('school').value.trim(),
+        subject: document.getElementById('subject').value,
+        grade: document.getElementById('grade').value
+    };
+    
+    // 验证
+    if (!formData.region || !formData.school || !formData.subject || !formData.grade) {
+        showFormError('请填写所有必填项');
         return;
     }
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = '登录中...';
-
-    if (errorDiv) {
-        errorDiv.style.display = 'none';
-    }
-
+    
     try {
-        const response = await fetch('/api/auth/login', {
+        const response = await fetch('/api/user/info', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            credentials: 'include',  // 重要：包含cookies
-            body: JSON.stringify({
-                user_id: userId,
-                password: password
-            })
+            body: JSON.stringify(formData)
         });
-
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-            // 记录当前登录用户ID
-            currentUserId = data.user_id || null;
-            // 登录成功，显示主界面
-            showMainApp();
-            // 初始化应用
-            await initApp();
+        
+        if (response.ok) {
+            hasUserInfo = true;
+            // 重新加载页面，显示主应用
+            location.reload();
         } else {
-            // 登录失败
-            showLoginError(data.message || '登录失败，请检查用户名和密码');
-            submitBtn.disabled = false;
-            submitBtn.textContent = '登录';
+            const error = await response.json();
+            showFormError(error.detail || '提交失败，请重试');
         }
     } catch (error) {
-        console.error('登录失败:', error);
-        showLoginError('登录失败，请稍后重试');
-        submitBtn.disabled = false;
-        submitBtn.textContent = '登录';
+        console.error('提交用户信息失败:', error);
+        showFormError('网络错误，请重试');
     }
 }
 
-// 显示登录错误
-function showLoginError(message) {
-    const errorDiv = document.getElementById('login-error');
-    if (errorDiv) {
-        errorDiv.textContent = message;
-        errorDiv.style.display = 'block';
-    }
+// 显示表单错误
+function showFormError(message) {
+    const errorDiv = document.getElementById('form-error');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    setTimeout(() => {
+        errorDiv.style.display = 'none';
+    }, 3000);
 }
 
 // 初始化应用（在登录成功后调用）
@@ -183,331 +184,10 @@ async function initApp() {
     // 设置测评问题
     setupQuestionsMode();
 
-    // 设置退出登录
-    setupLogout();
-
-    // 设置管理员面板（仅 admin 可见）
-    setupAdminPanel();
-
     // 不在初始化时加载数据，只在用户切换到对应模式时才加载
 }
 
-// 设置退出登录功能
-function setupLogout() {
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', handleLogout);
-    }
-}
-
-// 设置管理员面板（仅 admin 可见）
-function setupAdminPanel() {
-    const addBtn = document.getElementById('admin-add-user-btn');
-    const adminModeBtn = document.querySelector('.mode-btn[data-mode="admin"]');
-    const dashboardModeBtn = document.querySelector('.mode-btn[data-mode="dashboard"]');
-    const refreshDashboardBtn = document.getElementById('refresh-dashboard-btn');
-
-    // 仅 admin 显示"添加用户"和"数据看板"按钮
-    if (currentUserId === 'admin') {
-        if (adminModeBtn) {
-            adminModeBtn.style.display = 'inline-flex';
-        }
-        if (dashboardModeBtn) {
-            dashboardModeBtn.style.display = 'inline-flex';
-        }
-        if (addBtn) {
-            addBtn.onclick = handleAdminAddUser;
-        }
-        if (refreshDashboardBtn) {
-            refreshDashboardBtn.onclick = loadDashboard;
-        }
-    } else {
-        if (adminModeBtn) {
-            adminModeBtn.style.display = 'none';
-        }
-        if (dashboardModeBtn) {
-            dashboardModeBtn.style.display = 'none';
-        }
-    }
-}
-
-// 处理退出登录
-async function handleLogout() {
-    try {
-        const response = await fetch('/api/auth/logout', {
-            method: 'POST',
-            credentials: 'include'  // 重要：包含cookies
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            // 清空当前用户ID
-            currentUserId = null;
-            // 退出成功，显示登录界面
-            showLoginModal();
-            // 清空前端状态
-            battleSessionId = null;
-            sideBySideSessionId = null;
-            showMessage('已退出登录');
-        } else {
-            showError('退出登录失败');
-        }
-    } catch (error) {
-        console.error('退出登录失败:', error);
-        // 即使API调用失败，也尝试显示登录界面
-        showLoginModal();
-        showError('退出登录失败，请重试');
-    }
-}
-
-// 设置管理员模式
-function setupAdminMode() {
-    const userIdInput = document.getElementById('admin-new-user-id');
-    const passwordInput = document.getElementById('admin-new-user-password');
-    const msgDiv = document.getElementById('admin-add-user-msg');
-
-    // 清空表单和消息
-    if (userIdInput) userIdInput.value = '';
-    if (passwordInput) passwordInput.value = '';
-    if (msgDiv) {
-        msgDiv.textContent = '';
-        msgDiv.style.color = '#6b7280';
-    }
-
-    // 聚焦到用户ID输入框
-    if (userIdInput) {
-        setTimeout(() => userIdInput.focus(), 50);
-    }
-}
-
-// 管理员添加用户
-async function handleAdminAddUser() {
-    const userIdInput = document.getElementById('admin-new-user-id');
-    const passwordInput = document.getElementById('admin-new-user-password');
-    const msgDiv = document.getElementById('admin-add-user-msg');
-    const addBtn = document.getElementById('admin-add-user-btn');
-
-    if (!userIdInput || !passwordInput || !addBtn) return;
-
-    const userId = userIdInput.value.trim();
-    const password = passwordInput.value;
-
-    if (!userId || !password) {
-        if (msgDiv) {
-            msgDiv.textContent = '请输入新用户ID和密码';
-            msgDiv.style.color = '#b91c1c';
-        }
-        return;
-    }
-
-    addBtn.disabled = true;
-
-    try {
-        const response = await fetch('/api/auth/users', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-                user_id: userId,
-                password: password,
-            }),
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-            // 显示成功消息
-            if (msgDiv) {
-                msgDiv.textContent = '用户添加成功';
-                msgDiv.style.color = '#166534';
-            }
-            // 添加成功后清空表单
-            setupAdminMode();
-        } else {
-            if (msgDiv) {
-                msgDiv.textContent = data.detail || data.message || '添加用户失败';
-                msgDiv.style.color = '#b91c1c';
-            }
-        }
-    } catch (error) {
-        console.error('添加用户失败:', error);
-        if (msgDiv) {
-            msgDiv.textContent = '添加用户失败，请稍后重试';
-            msgDiv.style.color = '#b91c1c';
-        }
-    } finally {
-        addBtn.disabled = false;
-    }
-}
-
-// 加载数据看板统计数据
-async function loadDashboard() {
-    const container = document.getElementById('dashboard-content');
-    if (!container) return;
-
-    container.innerHTML = '<div class="loading">加载中...</div>';
-
-    try {
-        const response = await fetch('/api/auth/statistics', {
-            credentials: 'include'
-        });
-
-        if (!response.ok) {
-            if (response.status === 403) {
-                container.innerHTML = '<div class="empty-state">权限不足，只有管理员可以查看数据看板</div>';
-                return;
-            }
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        renderDashboard(data);
-    } catch (error) {
-        console.error('加载数据看板失败:', error);
-        container.innerHTML = '<div class="empty-state">加载数据失败，请稍后重试</div>';
-    }
-}
-
-// 渲染数据看板
-let dashboardChart = null;
-
-function renderDashboard(stats) {
-    const container = document.getElementById('dashboard-content');
-    if (!container) return;
-
-    const completionRate = stats.total_battles > 0
-        ? ((stats.completed_battles / stats.total_battles) * 100).toFixed(1)
-        : 0;
-
-    container.innerHTML = `
-        <div class="dashboard-card">
-            <div class="dashboard-card-icon">👥</div>
-            <div class="dashboard-card-content">
-                <div class="dashboard-card-label">总用户数</div>
-                <div class="dashboard-card-value">${stats.total_users}</div>
-            </div>
-        </div>
-        <div class="dashboard-card">
-            <div class="dashboard-card-icon">✅</div>
-            <div class="dashboard-card-content">
-                <div class="dashboard-card-label">当前作答人数</div>
-                <div class="dashboard-card-value">${stats.active_users}</div>
-            </div>
-        </div>
-        <div class="dashboard-card">
-            <div class="dashboard-card-icon">📝</div>
-            <div class="dashboard-card-content">
-                <div class="dashboard-card-label">总测评问题数量</div>
-                <div class="dashboard-card-value">${stats.total_battles}</div>
-            </div>
-        </div>
-        <div class="dashboard-card">
-            <div class="dashboard-card-icon">✓</div>
-            <div class="dashboard-card-content">
-                <div class="dashboard-card-label">已投票对战</div>
-                <div class="dashboard-card-value">${stats.completed_battles}</div>
-                <div class="dashboard-card-subtext">投票率: ${completionRate}%</div>
-            </div>
-        </div>
-    `;
-
-    // 渲染折线图
-    renderDashboardChart(stats.daily_battles || []);
-}
-
-// 渲染折线图
-function renderDashboardChart(dailyBattles) {
-    const chartContainer = document.getElementById('dashboard-chart-container');
-    const chartCanvas = document.getElementById('dashboard-chart');
-
-    if (!chartContainer || !chartCanvas) return;
-
-    // 显示图表容器
-    chartContainer.style.display = 'block';
-
-    // 销毁之前的图表（如果存在）
-    if (dashboardChart) {
-        dashboardChart.destroy();
-    }
-
-    // 准备数据
-    const labels = dailyBattles.map(item => {
-        const date = new Date(item.date);
-        const month = date.getMonth() + 1;
-        const day = date.getDate();
-        return `${month}/${day}`;
-    });
-    const data = dailyBattles.map(item => item.count);
-
-    // 创建新图表
-    const ctx = chartCanvas.getContext('2d');
-    dashboardChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: '作答数量',
-                data: data,
-                borderColor: '#111827',
-                backgroundColor: 'rgba(17, 24, 39, 0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0,
-                pointBackgroundColor: '#111827',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointRadius: 4,
-                pointHoverRadius: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    padding: 12,
-                    titleFont: {
-                        size: 14,
-                        weight: 'bold'
-                    },
-                    bodyFont: {
-                        size: 13
-                    },
-                    displayColors: false,
-                    callbacks: {
-                        label: function (context) {
-                            return '作答数量: ' + context.parsed.y;
-                        }
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1,
-                        precision: 0
-                    },
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.05)'
-                    }
-                },
-                x: {
-                    grid: {
-                        display: false
-                    }
-                }
-            }
-        }
-    });
-}
+// 管理员功能已移除
 
 // 加载可用模型
 async function loadModels() {
@@ -592,14 +272,6 @@ function setupModeSelector() {
             // 如果切换到测评问题，加载问题列表
             if (mode === 'questions') {
                 loadQuestions();
-            }
-            // 如果切换到管理员模式，清空表单
-            if (mode === 'admin') {
-                setupAdminMode();
-            }
-            // 如果切换到数据看板，加载统计数据
-            if (mode === 'dashboard') {
-                loadDashboard();
             }
         });
     });
@@ -724,34 +396,131 @@ async function sendBattleMessage() {
                         <div class="loading">思考中...</div>
                     </div>
                     <div class="evaluation-section" data-model="model_a" style="display: none;">
-                        <div class="evaluation-title">测评维度</div>
+                        <div class="evaluation-title">教案评价维度（请根据教案质量打分）</div>
                         <div class="evaluation-dimensions">
                             <div class="evaluation-item">
-                                <label>精准感知</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="perception" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="perception" data-value="0">不符合要求</button>
+                                <label>可执行性</label>
+                                <div class="evaluation-options likert-scale">
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="executable" data-value="1">1</button>
+                                        <span class="likert-desc">非常不可行</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="executable" data-value="2">2</button>
+                                        <span class="likert-desc">不太可行</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="executable" data-value="3">3</button>
+                                        <span class="likert-desc">一般</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="executable" data-value="4">4</button>
+                                        <span class="likert-desc">较可行</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="executable" data-value="5">5</button>
+                                        <span class="likert-desc">非常可行</span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="evaluation-item">
-                                <label>合适口吻</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="calibration" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="calibration" data-value="0">不符合要求</button>
+                                <label>符合学情</label>
+                                <div class="evaluation-options likert-scale">
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="student_fit" data-value="1">1</button>
+                                        <span class="likert-desc">非常不符合</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="student_fit" data-value="2">2</button>
+                                        <span class="likert-desc">不太符合</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="student_fit" data-value="3">3</button>
+                                        <span class="likert-desc">一般</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="student_fit" data-value="4">4</button>
+                                        <span class="likert-desc">较符合</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="student_fit" data-value="5">5</button>
+                                        <span class="likert-desc">非常符合</span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="evaluation-item">
-                                <label>坚持立场</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="differentiation" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="differentiation" data-value="0">不符合要求</button>
+                                <label>扎实有用</label>
+                                <div class="evaluation-options likert-scale">
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="practical" data-value="1">1</button>
+                                        <span class="likert-desc">非常不实用</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="practical" data-value="2">2</button>
+                                        <span class="likert-desc">不太实用</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="practical" data-value="3">3</button>
+                                        <span class="likert-desc">一般</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="practical" data-value="4">4</button>
+                                        <span class="likert-desc">较实用</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="practical" data-value="5">5</button>
+                                        <span class="likert-desc">非常实用</span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="evaluation-item">
-                                <label>有效引导</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="regulation" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="regulation" data-value="0">不符合要求</button>
+                                <label>融合本土</label>
+                                <div class="evaluation-options likert-scale">
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="local_integration" data-value="1">1</button>
+                                        <span class="likert-desc">完全未融合</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="local_integration" data-value="2">2</button>
+                                        <span class="likert-desc">融合较少</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="local_integration" data-value="3">3</button>
+                                        <span class="likert-desc">一般</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="local_integration" data-value="4">4</button>
+                                        <span class="likert-desc">融合较好</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="local_integration" data-value="5">5</button>
+                                        <span class="likert-desc">融合很好</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="evaluation-item">
+                                <label>善用技术</label>
+                                <div class="evaluation-options likert-scale">
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="tech_use" data-value="1">1</button>
+                                        <span class="likert-desc">完全未使用</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="tech_use" data-value="2">2</button>
+                                        <span class="likert-desc">使用较少</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="tech_use" data-value="3">3</button>
+                                        <span class="likert-desc">一般</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="tech_use" data-value="4">4</button>
+                                        <span class="likert-desc">使用较好</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="tech_use" data-value="5">5</button>
+                                        <span class="likert-desc">使用很好</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -763,34 +532,131 @@ async function sendBattleMessage() {
                         <div class="loading">思考中...</div>
                     </div>
                     <div class="evaluation-section" data-model="model_b" style="display: none;">
-                        <div class="evaluation-title">测评维度</div>
+                        <div class="evaluation-title">教案评价维度（请根据教案质量打分）</div>
                         <div class="evaluation-dimensions">
                             <div class="evaluation-item">
-                                <label>精准感知</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="perception" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="perception" data-value="0">不符合要求</button>
+                                <label>可执行性</label>
+                                <div class="evaluation-options likert-scale">
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="executable" data-value="1">1</button>
+                                        <span class="likert-desc">非常不可行</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="executable" data-value="2">2</button>
+                                        <span class="likert-desc">不太可行</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="executable" data-value="3">3</button>
+                                        <span class="likert-desc">一般</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="executable" data-value="4">4</button>
+                                        <span class="likert-desc">较可行</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="executable" data-value="5">5</button>
+                                        <span class="likert-desc">非常可行</span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="evaluation-item">
-                                <label>合适口吻</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="calibration" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="calibration" data-value="0">不符合要求</button>
+                                <label>符合学情</label>
+                                <div class="evaluation-options likert-scale">
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="student_fit" data-value="1">1</button>
+                                        <span class="likert-desc">非常不符合</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="student_fit" data-value="2">2</button>
+                                        <span class="likert-desc">不太符合</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="student_fit" data-value="3">3</button>
+                                        <span class="likert-desc">一般</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="student_fit" data-value="4">4</button>
+                                        <span class="likert-desc">较符合</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="student_fit" data-value="5">5</button>
+                                        <span class="likert-desc">非常符合</span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="evaluation-item">
-                                <label>坚持立场</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="differentiation" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="differentiation" data-value="0">不符合要求</button>
+                                <label>扎实有用</label>
+                                <div class="evaluation-options likert-scale">
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="practical" data-value="1">1</button>
+                                        <span class="likert-desc">非常不实用</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="practical" data-value="2">2</button>
+                                        <span class="likert-desc">不太实用</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="practical" data-value="3">3</button>
+                                        <span class="likert-desc">一般</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="practical" data-value="4">4</button>
+                                        <span class="likert-desc">较实用</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="practical" data-value="5">5</button>
+                                        <span class="likert-desc">非常实用</span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="evaluation-item">
-                                <label>有效引导</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="regulation" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="regulation" data-value="0">不符合要求</button>
+                                <label>融合本土</label>
+                                <div class="evaluation-options likert-scale">
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="local_integration" data-value="1">1</button>
+                                        <span class="likert-desc">完全未融合</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="local_integration" data-value="2">2</button>
+                                        <span class="likert-desc">融合较少</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="local_integration" data-value="3">3</button>
+                                        <span class="likert-desc">一般</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="local_integration" data-value="4">4</button>
+                                        <span class="likert-desc">融合较好</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="local_integration" data-value="5">5</button>
+                                        <span class="likert-desc">融合很好</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="evaluation-item">
+                                <label>善用技术</label>
+                                <div class="evaluation-options likert-scale">
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="tech_use" data-value="1">1</button>
+                                        <span class="likert-desc">完全未使用</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="tech_use" data-value="2">2</button>
+                                        <span class="likert-desc">使用较少</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="tech_use" data-value="3">3</button>
+                                        <span class="likert-desc">一般</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="tech_use" data-value="4">4</button>
+                                        <span class="likert-desc">使用较好</span>
+                                    </div>
+                                    <div class="likert-option">
+                                        <button class="eval-btn likert-btn" data-dimension="tech_use" data-value="5">5</button>
+                                        <span class="likert-desc">使用很好</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -901,8 +767,8 @@ function setupEvaluationButtons(roundEl) {
 
     // 存储当前轮的测评数据
     const evaluationData = {
-        model_a: { perception: null, calibration: null, differentiation: null, regulation: null },
-        model_b: { perception: null, calibration: null, differentiation: null, regulation: null }
+        model_a: { executable: null, student_fit: null, practical: null, local_integration: null, tech_use: null },
+        model_b: { executable: null, student_fit: null, practical: null, local_integration: null, tech_use: null }
     };
 
     evalButtons.forEach(btn => {
@@ -939,7 +805,7 @@ function setupEvaluationButtons(roundEl) {
 
 // 检查是否所有维度都已选择
 function checkAllDimensionsSelected(roundEl, evaluationData) {
-    const dimensions = ['perception', 'calibration', 'differentiation', 'regulation'];
+    const dimensions = ['executable', 'student_fit', 'practical', 'local_integration', 'tech_use'];
     for (const model of ['model_a', 'model_b']) {
         for (const dim of dimensions) {
             if (evaluationData[model][dim] === null) {

@@ -10,20 +10,74 @@ def generate_uuid():
     return str(uuid.uuid4())
 
 
-class Battle(Base):
-    """对战会话表"""
-    __tablename__ = "battles"
+class UserInfo(Base):
+    """用户信息表（记录用户基本信息）"""
+    __tablename__ = "user_info"
+    
+    id = Column(String(50), primary_key=True, default=generate_uuid)
+    region = Column(String(100), nullable=False)  # 地区
+    school = Column(String(200), nullable=False)  # 学校
+    subject = Column(String(100), nullable=False)  # 学科
+    grade = Column(String(50), nullable=False)  # 授课年级
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class BattleRecord(Base):
+    """对战记录表（合并 battles 和 battle_evaluations）"""
+    __tablename__ = "battle_records"
     
     id = Column(String(50), primary_key=True, default=generate_uuid)
     user_id = Column(String(50), nullable=True)  # 用户ID（发起对战的用户）
+    
+    # 模型信息
     model_a_id = Column(String(100), nullable=False)  # 模型 A 的 ID
     model_b_id = Column(String(100), nullable=False)  # 模型 B 的 ID
+    
+    # 对话内容
     conversation = Column(JSON, default=list)  # 对话历史 [{"role": "user", "content": "..."}, ...]
     model_a_response = Column(Text)  # 模型 A 的最后回复
     model_b_response = Column(Text)  # 模型 B 的最后回复
-    winner = Column(String(50), nullable=True)  # 胜者: "model_a", "model_b", "tie", None
+    
+    # 投票结果
+    winner = Column(String(50), nullable=True)  # 胜者: "model_a", "model_b", "tie", "both_bad", None
     is_revealed = Column(Integer, default=0)  # 是否已揭示模型身份
     is_question_valid = Column(Integer, nullable=True)  # 问题是否符合要求：1=符合，0=不符合，NULL=未标记
+    
+    # 模型 A 的测评维度（教案评价 - 5点李克特量表）
+    model_a_executable = Column(Integer, nullable=True)  # 可执行性：1-5分（1=非常不可行，5=非常可行）
+    model_a_student_fit = Column(Integer, nullable=True)  # 符合学情：1-5分（1=非常不符合，5=非常符合）
+    model_a_practical = Column(Integer, nullable=True)  # 扎实有用：1-5分（1=非常不实用，5=非常实用）
+    model_a_local_integration = Column(Integer, nullable=True)  # 融合本土：1-5分（1=完全未融合，5=融合很好）
+    model_a_tech_use = Column(Integer, nullable=True)  # 善用技术：1-5分（1=完全未使用，5=使用很好）
+    model_a_rating = Column(Float, nullable=True)  # 投票后模型 A 的 rating 值
+    
+    # 模型 B 的测评维度（教案评价 - 5点李克特量表）
+    model_b_executable = Column(Integer, nullable=True)  # 可执行性：1-5分（1=非常不可行，5=非常可行）
+    model_b_student_fit = Column(Integer, nullable=True)  # 符合学情：1-5分（1=非常不符合，5=非常符合）
+    model_b_practical = Column(Integer, nullable=True)  # 扎实有用：1-5分（1=非常不实用，5=非常实用）
+    model_b_local_integration = Column(Integer, nullable=True)  # 融合本土：1-5分（1=完全未融合，5=融合很好）
+    model_b_tech_use = Column(Integer, nullable=True)  # 善用技术：1-5分（1=完全未使用，5=使用很好）
+    model_b_rating = Column(Float, nullable=True)  # 投票后模型 B 的 rating 值
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+# 保留旧表定义以便兼容
+class Battle(Base):
+    """对战会话表（已弃用，保留用于数据迁移）"""
+    __tablename__ = "battles"
+    
+    id = Column(String(50), primary_key=True, default=generate_uuid)
+    user_id = Column(String(50), nullable=True)
+    model_a_id = Column(String(100), nullable=False)
+    model_b_id = Column(String(100), nullable=False)
+    conversation = Column(JSON, default=list)
+    model_a_response = Column(Text)
+    model_b_response = Column(Text)
+    winner = Column(String(50), nullable=True)
+    is_revealed = Column(Integer, default=0)
+    is_question_valid = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -33,7 +87,7 @@ class Vote(Base):
     __tablename__ = "votes"
     
     id = Column(String(50), primary_key=True, default=generate_uuid)
-    battle_id = Column(String(50), ForeignKey("battles.id"), nullable=False)
+    battle_id = Column(String(50), ForeignKey("battle_records.id"), nullable=False)  # 引用新表
     winner = Column(String(50), nullable=False)  # "model_a", "model_b", "tie"
     model_a_id = Column(String(100), nullable=False)  # 记录具体模型 ID
     model_b_id = Column(String(100), nullable=False)
@@ -82,18 +136,25 @@ class SideBySideVote(Base):
 
 
 class BattleEvaluation(Base):
-    """对战测评维度记录表"""
+    """对战测评维度记录表（已弃用，保留用于数据迁移）"""
     __tablename__ = "battle_evaluations"
 
     id = Column(String(50), primary_key=True, default=generate_uuid)
     battle_id = Column(String(50), ForeignKey("battles.id"), nullable=False)
-    model_type = Column(String(10), nullable=False)  # "model_a" 或 "model_b"
-    model_id = Column(String(100), nullable=False)  # 模型 ID
-    perception = Column(Integer, nullable=True)  # 感知：1=符合要求，0=不符合要求
-    calibration = Column(Integer, nullable=True)  # 校准：1=符合要求，0=不符合要求
-    differentiation = Column(Integer, nullable=True)  # 分化：1=符合要求，0=不符合要求
-    regulation = Column(Integer, nullable=True)  # 调节：1=符合要求，0=不符合要求
-    rating = Column(Float, nullable=True)  # 该轮投票后模型的 rating 值
+    model_type = Column(String(10), nullable=False)
+    model_id = Column(String(100), nullable=False)
+    # 旧字段（已弃用）
+    perception = Column(Integer, nullable=True)
+    calibration = Column(Integer, nullable=True)
+    differentiation = Column(Integer, nullable=True)
+    regulation = Column(Integer, nullable=True)
+    # 新字段（教案评价）
+    executable = Column(Integer, nullable=True)
+    student_fit = Column(Integer, nullable=True)
+    practical = Column(Integer, nullable=True)
+    local_integration = Column(Integer, nullable=True)
+    tech_use = Column(Integer, nullable=True)
+    rating = Column(Float, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
