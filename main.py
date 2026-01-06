@@ -10,7 +10,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 import os
 import logging
 
-from api import battle_router, chat_router, leaderboard_router, user_router
+from api import battle_router, chat_router, leaderboard_router, user_router, philosophy_router
 from models.database import init_db
 
 # 配置日志
@@ -61,6 +61,7 @@ app.include_router(battle_router)
 app.include_router(chat_router)
 app.include_router(leaderboard_router)
 app.include_router(user_router)
+app.include_router(philosophy_router)
 
 
 # 全局异常处理器

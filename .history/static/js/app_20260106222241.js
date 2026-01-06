@@ -2000,10 +2000,12 @@ async function submitPhilosophyVote(winner) {
                     <div class="model-reveal">
                         <span class="model-label">模型 A:</span>
                         <span class="model-name">${data.model_a_name}</span>
+                        <span class="model-rating">${data.model_a_rating.toFixed(2)}</span>
                     </div>
                     <div class="model-reveal">
                         <span class="model-label">模型 B:</span>
                         <span class="model-name">${data.model_b_name}</span>
+                        <span class="model-rating">${data.model_b_rating.toFixed(2)}</span>
                     </div>
                 </div>
             `;

@@ -22,6 +22,45 @@ class UserInfo(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class PhilosophyRecord(Base):
+    """教学理念竞技场记录表"""
+    __tablename__ = "philosophy_records"
+    
+    id = Column(String(50), primary_key=True, default=generate_uuid)
+    user_id = Column(String(50), nullable=True)  # 用户ID
+    
+    # 模型信息
+    model_a_id = Column(String(100), nullable=False)  # 模型 A 的 ID
+    model_b_id = Column(String(100), nullable=False)  # 模型 B 的 ID
+    
+    # 对话内容
+    conversation = Column(JSON, default=list)  # 对话历史
+    model_a_response = Column(Text)  # 模型 A 的最后回复
+    model_b_response = Column(Text)  # 模型 B 的最后回复
+    
+    # 投票结果
+    winner = Column(String(50), nullable=True)  # 胜者: "model_a", "model_b", "tie", "both_bad", None
+    is_revealed = Column(Integer, default=0)  # 是否已揭示模型身份
+    is_question_valid = Column(Integer, nullable=True)  # 问题是否符合要求
+    
+    # 模型 A 的测评维度（教学理念评价 - 5点李克特量表）
+    model_a_logic = Column(Integer, nullable=True)  # 逻辑的自洽性：1-5分
+    model_a_perspective = Column(Integer, nullable=True)  # 视角的独特性：1-5分
+    model_a_care = Column(Integer, nullable=True)  # 人文的关怀度：1-5分
+    model_a_inspiration = Column(Integer, nullable=True)  # 启发性的引导：1-5分
+    model_a_rating = Column(Float, nullable=True)  # 投票后模型 A 的 rating 值
+    
+    # 模型 B 的测评维度（教学理念评价 - 5点李克特量表）
+    model_b_logic = Column(Integer, nullable=True)  # 逻辑的自洽性：1-5分
+    model_b_perspective = Column(Integer, nullable=True)  # 视角的独特性：1-5分
+    model_b_care = Column(Integer, nullable=True)  # 人文的关怀度：1-5分
+    model_b_inspiration = Column(Integer, nullable=True)  # 启发性的引导：1-5分
+    model_b_rating = Column(Float, nullable=True)  # 投票后模型 B 的 rating 值
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
 class BattleRecord(Base):
     """对战记录表（合并 battles 和 battle_evaluations）"""
     __tablename__ = "battle_records"
@@ -83,7 +122,7 @@ class Battle(Base):
 
 
 class Vote(Base):
-    """投票记录表"""
+    """投票记录表（教案质量评价）"""
     __tablename__ = "votes"
     
     id = Column(String(50), primary_key=True, default=generate_uuid)
@@ -95,9 +134,37 @@ class Vote(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class PhilosophyVote(Base):
+    """投票记录表（教学理念竞技场）"""
+    __tablename__ = "philosophy_votes"
+    
+    id = Column(String(50), primary_key=True, default=generate_uuid)
+    philosophy_id = Column(String(50), ForeignKey("philosophy_records.id"), nullable=False)
+    winner = Column(String(50), nullable=False)  # "model_a", "model_b", "tie"
+    model_a_id = Column(String(100), nullable=False)
+    model_b_id = Column(String(100), nullable=False)
+    user_prompt = Column(Text)  # 用户的提问
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class ModelRating(Base):
-    """模型评分表"""
+    """模型评分表（教案质量评价）"""
     __tablename__ = "model_ratings"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    model_id = Column(String(100), unique=True, nullable=False)
+    model_name = Column(String(200), nullable=False)
+    rating = Column(Float, default=0)  # ELO 评分
+    total_battles = Column(Integer, default=0)  # 总对战次数
+    wins = Column(Integer, default=0)  # 胜利次数
+    losses = Column(Integer, default=0)  # 失败次数
+    ties = Column(Integer, default=0)  # 平局次数
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class PhilosophyModelRating(Base):
+    """模型评分表（教学理念竞技场）"""
+    __tablename__ = "philosophy_model_ratings"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     model_id = Column(String(100), unique=True, nullable=False)

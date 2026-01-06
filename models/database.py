@@ -62,7 +62,7 @@ async def init_db():
     print("初始化数据库...")
     
     # 只导入需要的表（新表结构）
-    from .schemas import UserInfo, BattleRecord, Vote, ModelRating, ChatSession, SideBySideVote
+    from .schemas import UserInfo, PhilosophyRecord, BattleRecord, Vote, PhilosophyVote, ModelRating, PhilosophyModelRating, ChatSession, SideBySideVote
     
     async with engine.begin() as conn:
         # 如果是 MySQL，先设置数据库和表的字符集
@@ -84,6 +84,9 @@ async def init_db():
         if "mysql" in config.DATABASE_URL.lower():
             try:
                 await conn.execute(text("ALTER TABLE user_info CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
+                await conn.execute(text("ALTER TABLE philosophy_records CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
+                await conn.execute(text("ALTER TABLE philosophy_votes CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
+                await conn.execute(text("ALTER TABLE philosophy_model_ratings CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
                 await conn.execute(text("ALTER TABLE battle_records CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
                 await conn.execute(text("ALTER TABLE votes CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
                 await conn.execute(text("ALTER TABLE model_ratings CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))

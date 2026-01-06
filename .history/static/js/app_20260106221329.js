@@ -1561,23 +1561,13 @@ function setupPhilosophyMode() {
 
     if (newPhilosophyBtn) {
         newPhilosophyBtn.addEventListener('click', async () => {
-            try {
-                await startPhilosophy();
-            } catch (error) {
-                console.error('启动教学理念竞技场失败:', error);
-                showError('启动失败，请重试');
-            }
+            await startPhilosophy();
         });
     }
 
     if (sendBtn) {
         sendBtn.addEventListener('click', async () => {
-            try {
-                await sendPhilosophyMessage();
-            } catch (error) {
-                console.error('发送消息失败:', error);
-                showError('发送失败，请重试');
-            }
+            await sendPhilosophyMessage();
         });
     }
 
@@ -1588,28 +1578,14 @@ function setupPhilosophyMode() {
                 // 检查按钮是否已禁用，避免重复提交
                 const sendBtn = document.getElementById('send-philosophy-btn');
                 if (sendBtn && !sendBtn.disabled) {
-                    // 异步调用包装在try-catch中
-                    sendPhilosophyMessage().catch(error => {
-                        console.error('发送消息失败:', error);
-                        showError('发送失败，请重试');
-                    });
+                    sendPhilosophyMessage();
                 }
             }
         });
     }
 
     voteButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            try {
-                submitPhilosophyVote(btn.dataset.winner).catch(error => {
-                    console.error('投票失败:', error);
-                    showError('投票失败，请重试');
-                });
-            } catch (error) {
-                console.error('投票失败:', error);
-                showError('投票失败，请重试');
-            }
-        });
+        btn.addEventListener('click', () => submitPhilosophyVote(btn.dataset.winner));
     });
 
     // 设置排行榜标签切换
@@ -2000,10 +1976,12 @@ async function submitPhilosophyVote(winner) {
                     <div class="model-reveal">
                         <span class="model-label">模型 A:</span>
                         <span class="model-name">${data.model_a_name}</span>
+                        <span class="model-rating">${data.model_a_rating.toFixed(2)}</span>
                     </div>
                     <div class="model-reveal">
                         <span class="model-label">模型 B:</span>
                         <span class="model-name">${data.model_b_name}</span>
+                        <span class="model-rating">${data.model_b_rating.toFixed(2)}</span>
                     </div>
                 </div>
             `;

@@ -30,6 +30,8 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     """聊天响应"""
+    model_config = {"protected_namespaces": ()}
+    
     session_id: str
     response_a: str
     response_b: str

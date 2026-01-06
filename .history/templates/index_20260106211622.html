@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LMArena - AI 模型对战评测平台</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=2">
+    <link rel="stylesheet" href="/static/css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 
@@ -26,7 +26,7 @@
             <nav class="sidebar-nav">
                 <button class="mode-btn nav-btn active" data-mode="battle">
                     <span class="nav-icon">⚔️</span>
-                    <span class="nav-label">教案质量竞技场</span>
+                    <span class="nav-label">教案质量评价</span>
                 </button>
                 <button class="mode-btn nav-btn" data-mode="philosophy">
                     <span class="nav-icon">💡</span>
@@ -75,11 +75,11 @@
             </header>
 
             <div class="main-content">
-                <!-- 教案质量竞技场模式 -->
+                <!-- 教案质量评价模式 -->
                 <section id="battle-mode" class="mode-content active">
                     <div class="mode-header">
                         <div class="mode-title">
-                            <h2>教案质量竞技场</h2>
+                            <h2>教案质量评价</h2>
                             <p>系统随机两模型匿名回答；你投票决定更优。</p>
                         </div>
                         <div id="battle-start">
@@ -119,22 +119,6 @@
                                 </button>
                             </div>
                             <div class="composer-hint">Enter 发送 · Shift+Enter 换行</div>
-                            <div class="prompt-template">
-                                <div class="prompt-title">📝 提示词模板</div>
-                                <div class="prompt-content">
-                                    你是一位<span class="prompt-var">{学段}{学科}</span>教师，擅长<span
-                                        class="prompt-var">{教学风格/特点}</span>。本学期正处于<span
-                                        class="prompt-var">{学期阶段与单元}</span>，教学内容为<span
-                                        class="prompt-var">{具体知识点}</span>，学生<span
-                                        class="prompt-var">{学情描述}</span>。我所在的<span
-                                        class="prompt-var">{学校类型与地域}</span>学校现有<span
-                                        class="prompt-var">{技术设备与资源条件}</span>。请设计一个<span
-                                        class="prompt-var">{教学环节}</span>活动，时长约<span
-                                        class="prompt-var">{时间}</span>，要求融入<span
-                                        class="prompt-var">{本土/地方元素}</span>，以<span
-                                        class="prompt-var">{呈现格式}</span>呈现，语言风格<span class="prompt-var">{风格要求}</span>。
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </section>
@@ -212,47 +196,27 @@
                     <div class="mode-header">
                         <div class="mode-title">
                             <h2>教学理念竞技场</h2>
-                            <p>系统随机两模型匿名回答；你投票决定更优。</p>
+                            <p>探讨教学理念，评价模型的逻辑性、独特性、关怀度和启发性。</p>
                         </div>
                         <div id="philosophy-start">
-                            <button id="start-philosophy-btn" class="primary-btn">开始对战</button>
+                            <button id="start-philosophy-btn" class="primary-btn">开始竞技</button>
                         </div>
                     </div>
 
                     <div id="philosophy-chat-area" style="display: none;">
                         <div id="philosophy-rounds"></div>
 
-                        <div id="philosophy-voting-section" class="voting-section" style="display: none;">
-                            <h3>选择更好的回答：</h3>
-                            <div class="vote-buttons">
-                                <button class="vote-btn philosophy-vote-btn" data-winner="model_a">模型 A 更好</button>
-                                <button class="vote-btn philosophy-vote-btn" data-winner="tie">两个都好</button>
-                                <button class="vote-btn philosophy-vote-btn" data-winner="model_b">模型 B 更好</button>
-                                <button class="vote-btn philosophy-vote-btn" data-winner="both_bad">两个都不好</button>
-                            </div>
-                        </div>
-
-                        <div id="philosophy-reveal-section" class="reveal-section" style="display: none;">
-                            <div class="reveal-info">
-                                <div id="philosophy-reveal-content"></div>
-                            </div>
-                        </div>
-
-                        <div class="composer">
-                            <div class="input-section">
-                                <textarea id="philosophy-user-input" placeholder="输入你的问题..." rows="3"></textarea>
-                                <button id="send-philosophy-btn" class="send-btn" title="发送">
-                                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                                    </svg>
-                                    <span>发送</span>
-                                </button>
+                        <div class="composer-wrapper" id="philosophy-input-section" style="display: none;">
+                            <textarea id="philosophy-user-input" class="composer-input" placeholder="请输入您的教学理念问题..."
+                                rows="3"></textarea>
+                            <div class="composer-actions">
+                                <button id="send-philosophy-btn" class="primary-btn">发送</button>
                             </div>
                             <div class="composer-hint">Enter 发送 · Shift+Enter 换行</div>
                         </div>
 
                         <div class="new-round" id="philosophy-new-round" style="display: none;">
-                            <button id="philosophy-new-round-btn" class="secondary-btn ghost">开始新对战</button>
+                            <button id="philosophy-new-round-btn" class="secondary-btn ghost">开启新一轮竞技</button>
                         </div>
                     </div>
                 </section>
@@ -297,7 +261,7 @@
 
                     <!-- 排行榜标签页 -->
                     <div class="leaderboard-tabs">
-                        <button class="leaderboard-tab-btn active" data-tab="lesson">教案质量竞技场</button>
+                        <button class="leaderboard-tab-btn active" data-tab="lesson">教案质量评价</button>
                         <button class="leaderboard-tab-btn" data-tab="philosophy">教学理念竞技场</button>
                     </div>
 
@@ -361,7 +325,7 @@
 
     <div id="toast" class="toast" aria-live="polite" aria-atomic="true"></div>
 
-    <script src="/static/js/app.js?v=2"></script>
+    <script src="/static/js/app.js"></script>
 </body>
 
 </html>

@@ -20,7 +20,7 @@ class RatingService:
         积分制：
         - A 胜：A +2，B +0
         - B 胜：A +0，B +2
-        - 平局：A +1，B +1
+        - 平局：A +0，B +0  (修改：平局不加分)
         - 两个都不好：A +0，B +0
         """
         if result == "model_a":
@@ -29,8 +29,8 @@ class RatingService:
             return rating_a + config.LOSS_POINTS, rating_b + config.WIN_POINTS
         if result == "both_bad":
             return rating_a + 0, rating_b + 0
-        # tie
-        return rating_a + config.TIE_POINTS, rating_b + config.TIE_POINTS
+        # tie - 修改为不加分
+        return rating_a + 0, rating_b + 0
     
     @staticmethod
     async def update_ratings(
@@ -200,8 +200,8 @@ class RatingService:
             new_rating_a = model_a_rating.rating  # 两个都不好，没有加分，所以不需要减
             new_rating_b = model_b_rating.rating
         else:  # tie
-            new_rating_a = model_a_rating.rating - config.TIE_POINTS
-            new_rating_b = model_b_rating.rating - config.TIE_POINTS
+            new_rating_a = model_a_rating.rating  # 平局不减分（因为平局时没有加分）
+            new_rating_b = model_b_rating.rating
         
         # 确保评分不为负数
         new_rating_a = max(0, new_rating_a)

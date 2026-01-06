@@ -284,21 +284,19 @@ function setupModeSelector() {
 // ===== 对战模式 =====
 function setupBattleMode() {
     const startBtn = document.getElementById('start-battle-btn');
+    const newBattleBtn = document.getElementById('new-battle-btn');
+    const continueBattleBtn = document.getElementById('continue-battle-btn');
     const sendBtn = document.getElementById('battle-send-btn');
     const input = document.getElementById('battle-input');
     const voteButtons = document.querySelectorAll('.battle-vote-btn');
-    // 统一控制"输入区域（含提示）"的显示/隐藏
+    // 统一控制“输入区域（含提示）”的显示/隐藏
     battleInputSection = document.querySelector('#battle-mode .composer');
 
     startBtn.addEventListener('click', startBattle);
-
-    // 动态绑定新对战按钮（因为按钮在投票后动态生成）
-    document.addEventListener('click', (e) => {
-        if (e.target && e.target.id === 'new-battle-btn') {
-            startBattle();
-        }
-    });
-
+    newBattleBtn.addEventListener('click', startBattle);
+    if (continueBattleBtn) {
+        continueBattleBtn.addEventListener('click', continueCurrentBattle);
+    }
     sendBtn.addEventListener('click', sendBattleMessage);
 
     input.addEventListener('keydown', (e) => {
@@ -968,6 +966,58 @@ async function submitVote(winner) {
     }
 }
 
+// 继续使用当前模型进行对战（保留界面聊天内容 + 历史对话）
+async function continueCurrentBattle() {
+    // 需要已有的对战 session，才能基于它继续
+    if (!battleSessionId) {
+        showError('当前没有正在进行的对战，请先点击“开始对战”。');
+        return;
+    }
+
+    const sendBtn = document.getElementById('battle-send-btn');
+
+    try {
+        // 调用后端 /api/battle/continue，基于当前对战创建一个新的 session
+        const resp = await fetch('/api/battle/continue', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',  // 确保包含 cookies（用于 session 认证）
+            body: JSON.stringify({ session_id: battleSessionId }),
+        });
+
+        if (!resp.ok) {
+            throw new Error('继续对战失败');
+        }
+
+        const data = await resp.json();
+        // 设置 session_id 为原会话ID（作为标记）
+        // 当用户真正发送消息时，后端会检测到原会话已完成投票，自动创建新记录
+        battleSessionId = data.session_id;
+
+        // 隐藏“结果/按钮”区域，回到提问状态，但保留上一轮对话内容
+        const revealSection = document.getElementById('reveal-section');
+        if (revealSection) revealSection.style.display = 'none';
+
+        // 确保聊天区域处于显示状态
+        const battleStart = document.getElementById('battle-start');
+        const battleChat = document.getElementById('battle-chat');
+        if (battleStart) battleStart.style.display = 'none';
+        if (battleChat) battleChat.style.display = 'block';
+
+        // 不清空界面上的聊天内容，只是重新启用输入与发送
+        if (sendBtn) sendBtn.disabled = false;
+        if (battleInputSection) battleInputSection.style.display = 'block';
+        // 确保投票按钮是启用状态（防止之前的状态影响）
+        const voteButtons = document.querySelectorAll('.battle-vote-btn');
+        voteButtons.forEach(btn => {
+            btn.disabled = false;
+        });
+    } catch (e) {
+        console.error('继续对战失败:', e);
+        showError('继续对战失败，请稍后重试');
+    }
+}
+
 // ===== 并排对比模式 =====
 function setupSideBySideMode() {
     const sendBtn = document.getElementById('sidebyside-send-btn');
@@ -1561,23 +1611,13 @@ function setupPhilosophyMode() {
 
     if (newPhilosophyBtn) {
         newPhilosophyBtn.addEventListener('click', async () => {
-            try {
-                await startPhilosophy();
-            } catch (error) {
-                console.error('启动教学理念竞技场失败:', error);
-                showError('启动失败，请重试');
-            }
+            await startPhilosophy();
         });
     }
 
     if (sendBtn) {
         sendBtn.addEventListener('click', async () => {
-            try {
-                await sendPhilosophyMessage();
-            } catch (error) {
-                console.error('发送消息失败:', error);
-                showError('发送失败，请重试');
-            }
+            await sendPhilosophyMessage();
         });
     }
 
@@ -1588,28 +1628,14 @@ function setupPhilosophyMode() {
                 // 检查按钮是否已禁用，避免重复提交
                 const sendBtn = document.getElementById('send-philosophy-btn');
                 if (sendBtn && !sendBtn.disabled) {
-                    // 异步调用包装在try-catch中
-                    sendPhilosophyMessage().catch(error => {
-                        console.error('发送消息失败:', error);
-                        showError('发送失败，请重试');
-                    });
+                    sendPhilosophyMessage();
                 }
             }
         });
     }
 
     voteButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            try {
-                submitPhilosophyVote(btn.dataset.winner).catch(error => {
-                    console.error('投票失败:', error);
-                    showError('投票失败，请重试');
-                });
-            } catch (error) {
-                console.error('投票失败:', error);
-                showError('投票失败，请重试');
-            }
-        });
+        btn.addEventListener('click', () => submitPhilosophyVote(btn.dataset.winner));
     });
 
     // 设置排行榜标签切换
@@ -2000,10 +2026,12 @@ async function submitPhilosophyVote(winner) {
                     <div class="model-reveal">
                         <span class="model-label">模型 A:</span>
                         <span class="model-name">${data.model_a_name}</span>
+                        <span class="model-rating">${data.model_a_rating.toFixed(2)}</span>
                     </div>
                     <div class="model-reveal">
                         <span class="model-label">模型 B:</span>
                         <span class="model-name">${data.model_b_name}</span>
+                        <span class="model-rating">${data.model_b_rating.toFixed(2)}</span>
                     </div>
                 </div>
             `;
