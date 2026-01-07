@@ -10,15 +10,10 @@ import random
 from models.database import get_db
 from models.schemas import PhilosophyRecord, PhilosophyVote, PhilosophyModelRating
 from services.model_service import ModelService
-from config import AVAILABLE_MODELS
+from config import AVAILABLE_MODELS, WIN_POINTS, LOSS_POINTS, INITIAL_RATING
 
 router = APIRouter(prefix="/api/philosophy", tags=["philosophy"])
 model_service = ModelService()
-
-
-# ELO 评分相关常数
-K_FACTOR = 32
-INITIAL_RATING = 1000.0
 
 
 class StartPhilosophyRequest(BaseModel):
@@ -307,7 +302,7 @@ async def update_philosophy_model_ratings(
     winner: str
 ):
     """
-    更新模型评分（使用 ELO 算法）
+    更新模型评分（使用积分制：胜+2，平+0，负+0）
     """
     # 获取或创建模型 A 的评分记录
     result_a = await db.execute(
@@ -347,31 +342,35 @@ async def update_philosophy_model_ratings(
         db.add(rating_b)
         await db.flush()  # 确保记录被创建并分配默认值
     
-    # 计算期望胜率
-    expected_a = 1 / (1 + 10 ** ((rating_b.rating - rating_a.rating) / 400))
-    expected_b = 1 / (1 + 10 ** ((rating_a.rating - rating_b.rating) / 400))
-    
-    # 根据投票结果计算实际得分
+    # 计算新评分（积分制）
+    # A 胜：A +2，B +0
+    # B 胜：A +0，B +2
+    # 平局：A +0，B +0
+    # 两个都不好：A +0，B +0
     if winner == "model_a":
-        score_a, score_b = 1.0, 0.0
+        new_rating_a = rating_a.rating + WIN_POINTS
+        new_rating_b = rating_b.rating + LOSS_POINTS
         rating_a.wins += 1
         rating_b.losses += 1
     elif winner == "model_b":
-        score_a, score_b = 0.0, 1.0
+        new_rating_a = rating_a.rating + LOSS_POINTS
+        new_rating_b = rating_b.rating + WIN_POINTS
         rating_a.losses += 1
         rating_b.wins += 1
-    elif winner == "tie":
-        score_a, score_b = 0.0, 0.0  # 修改：平局时两个模型都不加分
+    elif winner == "both_bad":
+        # 两个都不好，不增加wins/losses/ties
+        new_rating_a = rating_a.rating + 0
+        new_rating_b = rating_b.rating + 0
+    else:  # tie
+        # 平局不加分
+        new_rating_a = rating_a.rating + 0
+        new_rating_b = rating_b.rating + 0
         rating_a.ties += 1
         rating_b.ties += 1
-    else:  # both_bad
-        score_a, score_b = 0.0, 0.0
-        rating_a.losses += 1
-        rating_b.losses += 1
     
     # 更新评分
-    rating_a.rating += K_FACTOR * (score_a - expected_a)
-    rating_b.rating += K_FACTOR * (score_b - expected_b)
+    rating_a.rating = new_rating_a
+    rating_b.rating = new_rating_b
     
     # 更新对战次数
     rating_a.total_battles += 1

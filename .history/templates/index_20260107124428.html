@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LMArena - AI 模型对战评测平台</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=2">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+    <div class="app-shell" id="app-shell">
+        <!-- ChatGPT 风格侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <div class="brand-icon">🤖</div>
+                    <div class="brand-text">
+                        <div class="brand-title">LMArena</div>
+                        <div class="brand-subtitle">教案评价 · 偏好投票 · 积分榜</div>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <button class="mode-btn nav-btn active" data-mode="battle">
+                    <span class="nav-icon">⚔️</span>
+                    <span class="nav-label">教案质量竞技场</span>
+                </button>
+                <button class="mode-btn nav-btn" data-mode="philosophy">
+                    <span class="nav-icon">💡</span>
+                    <span class="nav-label">教学理念竞技场</span>
+                </button>
+                <button class="mode-btn nav-btn" data-mode="history">
+                    <span class="nav-icon">📜</span>
+                    <span class="nav-label">历史对话</span>
+                </button>
+                <button class="mode-btn nav-btn" data-mode="questions">
+                    <span class="nav-icon">❓</span>
+                    <span class="nav-label">测评问题</span>
+                </button>
+                <!-- 仅 admin 可见的"添加用户"按钮 -->
+                <button class="mode-btn nav-btn admin-nav-btn" data-mode="admin" type="button" style="display: none;">
+                    <span class="nav-icon">➕</span>
+                    <span class="nav-label">添加用户</span>
+                </button>
+                <!-- 仅 admin 可见的"数据看板"按钮 -->
+                <button class="mode-btn nav-btn admin-nav-btn" data-mode="dashboard" type="button"
+                    style="display: none;">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-label">数据看板</span>
+                </button>
+                <button class="mode-btn nav-btn" data-mode="sidebyside" style="display: none;">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-label">并排对比</span>
+                </button>
+                <button class="mode-btn nav-btn" data-mode="leaderboard">
+                    <span class="nav-icon">🏆</span>
+                    <span class="nav-label">排行榜</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-note">提示：仅 Battle 投票计入积分</div>
+                <div class="sidebar-copy">© 2024 LMArena</div>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main">
+            <header class="main-header">
+                <div class="main-header-title">AI 模型对战评测</div>
+                <div class="main-header-subtitle">投票对比与排行榜。</div>
+            </header>
+
+            <div class="main-content">
+                <!-- 教案质量竞技场模式 -->
+                <section id="battle-mode" class="mode-content active">
+                    <div class="mode-header">
+                        <div class="mode-title">
+                            <h2>教案质量竞技场</h2>
+                            <p>系统随机两模型匿名回答；你投票决定更优。</p>
+                        </div>
+                        <div id="battle-start">
+                            <button id="start-battle-btn" class="primary-btn">开始对战</button>
+                        </div>
+                    </div>
+
+                    <div id="battle-chat" class="chat-view" style="display: none;">
+                        <!-- 多轮对话容器：每轮包含「用户问题 + 模型 A / 模型 B 回答」 -->
+                        <div id="battle-responses" class="responses-list"></div>
+
+                        <div id="voting-section" class="voting-section" style="display: none;">
+                            <h3>选择更好的回答：</h3>
+                            <div class="vote-buttons">
+                                <button class="vote-btn battle-vote-btn" data-winner="model_a">模型 A 更好</button>
+                                <button class="vote-btn battle-vote-btn" data-winner="tie">两个都好</button>
+                                <button class="vote-btn battle-vote-btn" data-winner="model_b">模型 B 更好</button>
+                                <button class="vote-btn battle-vote-btn" data-winner="both_bad">两个都不好</button>
+                            </div>
+                        </div>
+
+                        <div id="reveal-section" class="reveal-section" style="display: none;">
+                            <div class="reveal-info">
+                                <button id="new-battle-btn" class="primary-btn ghost">开始新对战</button>
+                                <button id="continue-battle-btn" class="secondary-btn ghost">继续使用当前模型进行对战</button>
+                            </div>
+                        </div>
+
+                        <div class="composer">
+                            <div class="input-section">
+                                <textarea id="battle-input" placeholder="输入你的问题..." rows="3"></textarea>
+                                <button id="battle-send-btn" class="send-btn" title="发送">
+                                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                                    </svg>
+                                    <span>发送</span>
+                                </button>
+                            </div>
+                            <div class="composer-hint">Enter 发送 · Shift+Enter 换行</div>
+                            <div class="prompt-template">
+                                <div class="prompt-title">📝 提示词模板</div>
+                                <div class="prompt-content">
+                                    你是一位<span class="prompt-var">{学段}{学科}</span>教师，擅长<span
+                                        class="prompt-var">{教学风格/特点}</span>。本学期正处于<span
+                                        class="prompt-var">{学期阶段与单元}</span>，教学内容为<span
+                                        class="prompt-var">{具体知识点}</span>，学生<span
+                                        class="prompt-var">{学情描述}</span>。我所在的<span
+                                        class="prompt-var">{学校类型与地域}</span>学校现有<span
+                                        class="prompt-var">{技术设备与资源条件}</span>。请设计一个<span
+                                        class="prompt-var">{教学环节}</span>活动，时长约<span
+                                        class="prompt-var">{时间}</span>，要求融入<span
+                                        class="prompt-var">{本土/地方元素}</span>，以<span
+                                        class="prompt-var">{呈现格式}</span>呈现，语言风格<span class="prompt-var">{风格要求}</span>。
+                                </div>
+                            </div>
+
+                            <div class="prompt-explanation">
+                                <div class="explanation-header">
+                                    <span class="explanation-title">💡 字段说明</span>
+                                    <button type="button" class="toggle-btn" id="toggle-explanation">展开</button>
+                                </div>
+                                <div class="explanation-content" id="explanation-content" style="display: none;">
+                                    <div class="field-item">
+                                        <div class="field-name">{学段}{学科}</div>
+                                        <div class="field-desc">明确教学身份，如"小学五年级语文""初中二年级数学"</div>
+                                    </div>
+                                    <div class="field-item">
+                                        <div class="field-name">{教学风格/特点}</div>
+                                        <div class="field-desc">描述你的教学特色，如"善于创设生活情境""注重探究式学习""语言幽默生动"</div>
+                                    </div>
+                                    <div class="field-item">
+                                        <div class="field-name">{学期阶段与单元}</div>
+                                        <div class="field-desc">说明教学进度，如"上学期第三单元""下学期期中复习阶段"</div>
+                                    </div>
+                                    <div class="field-item">
+                                        <div class="field-name">{具体知识点}</div>
+                                        <div class="field-desc">明确本节课的核心内容，避免笼统。例如："两位数乘法的竖式计算"而非"乘法"</div>
+                                    </div>
+                                    <div class="field-item">
+                                        <div class="field-name">{学情描述}</div>
+                                        <div class="field-desc">简述学生已有基础、常见困难或兴趣点，如"已掌握加法进位，但乘法进位易出错""对古诗词意境想象较弱"</div>
+                                    </div>
+                                    <div class="field-item">
+                                        <div class="field-name">{学校类型与地域}</div>
+                                        <div class="field-desc">填写学校背景，如"乡镇中心小学""城市实验学校""山区寄宿制学校"</div>
+                                    </div>
+                                    <div class="field-item">
+                                        <div class="field-name">{技术设备与资源条件}</div>
+                                        <div class="field-desc">如实填写可用设备，如"只有投影仪+黑板""拥有智慧课堂平板系统""网络信号不稳定"</div>
+                                    </div>
+                                    <div class="field-item">
+                                        <div class="field-name">{教学环节}</div>
+                                        <div class="field-desc">指定环节，如"导入""新授""小组讨论""巩固练习"。避免笼统的"设计一节课"</div>
+                                    </div>
+                                    <div class="field-item">
+                                        <div class="field-name">{时间}</div>
+                                        <div class="field-desc">明确时长，如"8分钟""15分钟"。控制生成内容的篇幅与复杂度</div>
+                                    </div>
+                                    <div class="field-item">
+                                        <div class="field-name">{本土/地方元素}</div>
+                                        <div class="field-desc">融入本地资源，如"用本地方言朗读童谣""结合本地红色景点讲解历史""引入本地传统手工艺案例"</div>
+                                    </div>
+                                    <div class="field-item">
+                                        <div class="field-name">{呈现格式}</div>
+                                        <div class="field-desc">指定输出形式，如"分步操作清单""对话脚本""PPT大纲""学习任务单"。确保生成内容即拿即用</div>
+                                    </div>
+                                    <div class="field-item">
+                                        <div class="field-name">{风格要求}</div>
+                                        <div class="field-desc">明确语言调性，如"亲切口语化""简洁指令式""富有感染力"。匹配教学对象与环节氛围</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 并排对比模式 -->
+                <section id="sidebyside-mode" class="mode-content" style="display: none;">
+                    <div class="mode-header">
+                        <div class="mode-title">
+                            <h2>并排对比</h2>
+                            <p>选择两个模型并排作答。此模式投票仅收集偏好，不计入排行榜积分。</p>
+                        </div>
+                    </div>
+
+                    <div class="chat-view">
+                        <div class="model-selection">
+                            <div class="model-select-group">
+                                <label>模型 A</label>
+                                <select id="sidebyside-model-a" class="model-select"></select>
+                            </div>
+                            <div class="model-select-group">
+                                <label>模型 B</label>
+                                <select id="sidebyside-model-b" class="model-select"></select>
+                            </div>
+                        </div>
+
+                        <div class="messages">
+                            <div id="sidebyside-user-msg" class="message user" style="display: none;"></div>
+                        </div>
+
+                        <div class="responses-grid">
+                            <div class="response-box">
+                                <div class="response-header" id="sidebyside-header-a">模型 A</div>
+                                <div id="sidebyside-response-a" class="response-content">
+                                    <div class="empty-state">等待回复...</div>
+                                </div>
+                            </div>
+                            <div class="response-box">
+                                <div class="response-header" id="sidebyside-header-b">模型 B</div>
+                                <div id="sidebyside-response-b" class="response-content">
+                                    <div class="empty-state">等待回复...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="sidebyside-voting" class="voting-section" style="display: none;">
+                            <h3>选择更好的回答：</h3>
+                            <div class="vote-buttons">
+                                <button class="vote-btn sidebyside-vote-btn" data-winner="model_a">模型 A 更好</button>
+                                <button class="vote-btn sidebyside-vote-btn" data-winner="tie">两个都好</button>
+                                <button class="vote-btn sidebyside-vote-btn" data-winner="model_b">模型 B 更好</button>
+                            </div>
+                        </div>
+
+                        <div class="composer">
+                            <div class="input-section">
+                                <textarea id="sidebyside-input" placeholder="输入你的问题..." rows="3"></textarea>
+                                <button id="sidebyside-send-btn" class="send-btn" title="发送">
+                                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                                    </svg>
+                                    <span>发送</span>
+                                </button>
+                            </div>
+                            <div class="composer-hint">Enter 发送 · Shift+Enter 换行</div>
+                        </div>
+
+                        <div class="new-round" id="sidebyside-new-round" style="display: none;">
+                            <button id="sidebyside-new-round-btn" class="secondary-btn ghost">开启新一轮对话</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 教学理念竞技场模式 -->
+                <section id="philosophy-mode" class="mode-content" style="display: none;">
+                    <div class="mode-header">
+                        <div class="mode-title">
+                            <h2>教学理念竞技场</h2>
+                            <p>系统随机两模型匿名回答；你投票决定更优。</p>
+                        </div>
+                        <div id="philosophy-start">
+                            <button id="start-philosophy-btn" class="primary-btn">开始对战</button>
+                        </div>
+                    </div>
+
+                    <div id="philosophy-chat-area" style="display: none;">
+                        <div id="philosophy-rounds"></div>
+
+                        <div id="philosophy-voting-section" class="voting-section" style="display: none;">
+                            <h3>选择更好的回答：</h3>
+                            <div class="vote-buttons">
+                                <button class="vote-btn philosophy-vote-btn" data-winner="model_a">模型 A 更好</button>
+                                <button class="vote-btn philosophy-vote-btn" data-winner="tie">两个都好</button>
+                                <button class="vote-btn philosophy-vote-btn" data-winner="model_b">模型 B 更好</button>
+                                <button class="vote-btn philosophy-vote-btn" data-winner="both_bad">两个都不好</button>
+                            </div>
+                        </div>
+
+                        <div id="philosophy-reveal-section" class="reveal-section" style="display: none;">
+                            <div class="reveal-info">
+                                <div id="philosophy-reveal-content"></div>
+                            </div>
+                        </div>
+
+                        <div class="composer">
+                            <div class="input-section">
+                                <textarea id="philosophy-user-input" placeholder="输入你的问题..." rows="3"></textarea>
+                                <button id="send-philosophy-btn" class="send-btn" title="发送">
+                                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                                    </svg>
+                                    <span>发送</span>
+                                </button>
+                            </div>
+                            <div class="composer-hint">Enter 发送 · Shift+Enter 换行</div>
+                        </div>
+
+                        <div class="new-round" id="philosophy-new-round" style="display: none;">
+                            <button id="philosophy-new-round-btn" class="secondary-btn ghost">开始新对战</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 历史对话模式 -->
+                <section id="history-mode" class="mode-content" style="display: none;">
+                    <div class="mode-header">
+                        <div class="mode-title">
+                            <h2>历史对话</h2>
+                            <p>查看你参与的所有对战对话历史记录。</p>
+                        </div>
+                        <button id="refresh-history-btn" class="secondary-btn">刷新</button>
+                    </div>
+                    <div id="history-content" class="history-list">
+                        <div class="loading">加载中...</div>
+                    </div>
+                </section>
+
+                <!-- 测评问题模式 -->
+                <section id="questions-mode" class="mode-content" style="display: none;">
+                    <div class="mode-header">
+                        <div class="mode-title">
+                            <h2>测评问题</h2>
+                            <p>查看你提出的所有历史问题，检查它们是否符合要求。</p>
+                        </div>
+                        <button id="refresh-questions-btn" class="secondary-btn">刷新</button>
+                    </div>
+                    <div id="questions-content" class="questions-list">
+                        <div class="loading">加载中...</div>
+                    </div>
+                </section>
+
+                <!-- 排行榜模式 -->
+                <section id="leaderboard-mode" class="mode-content" style="display: none;">
+                    <div class="mode-header">
+                        <div class="mode-title">
+                            <h2>排行榜</h2>
+                            <p>基于投票累计积分，实时更新。</p>
+                        </div>
+                        <button id="refresh-leaderboard-btn" class="secondary-btn">刷新</button>
+                    </div>
+
+                    <!-- 排行榜标签页 -->
+                    <div class="leaderboard-tabs">
+                        <button class="leaderboard-tab-btn active" data-tab="lesson">教案质量竞技场</button>
+                        <button class="leaderboard-tab-btn" data-tab="philosophy">教学理念竞技场</button>
+                    </div>
+
+                    <div id="lesson-leaderboard" class="leaderboard-tab-content active">
+                        <div id="leaderboard-content" class="leaderboard-table">
+                            <div class="loading">加载中...</div>
+                        </div>
+                    </div>
+
+                    <div id="philosophy-leaderboard" class="leaderboard-tab-content" style="display: none;">
+                        <div id="philosophy-leaderboard-content" class="leaderboard-table">
+                            <div class="loading">加载中...</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 管理员添加用户模式 -->
+                <section id="admin-mode" class="mode-content" style="display: none;">
+                    <div class="mode-header">
+                        <div class="mode-title">
+                            <h2>添加用户</h2>
+                            <p>管理员可以创建新用户账号。</p>
+                        </div>
+                    </div>
+                    <div class="admin-panel" style="margin-top: 20px;">
+                        <div class="form-group">
+                            <label for="admin-new-user-id">新用户ID</label>
+                            <input type="text" id="admin-new-user-id" placeholder="请输入新用户ID">
+                        </div>
+                        <div class="form-group">
+                            <label for="admin-new-user-password">新用户密码</label>
+                            <input type="password" id="admin-new-user-password" placeholder="请输入新用户密码">
+                        </div>
+                        <div class="admin-buttons">
+                            <button id="admin-add-user-btn" class="primary-btn" type="button">添加用户</button>
+                        </div>
+                        <div id="admin-add-user-msg" class="admin-hint"></div>
+                    </div>
+                </section>
+
+                <!-- 管理员数据看板模式 -->
+                <section id="dashboard-mode" class="mode-content" style="display: none;">
+                    <div class="mode-header">
+                        <div class="mode-title">
+                            <h2>数据看板</h2>
+                            <p>系统统计数据和运营指标。</p>
+                        </div>
+                        <button id="refresh-dashboard-btn" class="secondary-btn">刷新</button>
+                    </div>
+                    <div id="dashboard-content" class="dashboard-grid">
+                        <div class="loading">加载中...</div>
+                    </div>
+                    <div id="dashboard-chart-container" class="dashboard-chart-container" style="display: none;">
+                        <div class="dashboard-chart-title">近10日每日作答数量</div>
+                        <canvas id="dashboard-chart"></canvas>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <div id="toast" class="toast" aria-live="polite" aria-atomic="true"></div>
+
+    <script src="/static/js/app.js?v=2"></script>
+</body>
+
+</html>

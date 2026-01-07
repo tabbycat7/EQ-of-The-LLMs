@@ -2063,30 +2063,39 @@ async function loadPhilosophyLeaderboard() {
         if (!content) return;
 
         if (!data.leaderboard || data.leaderboard.length === 0) {
-            content.innerHTML = '<div class="empty-state">暂无排行榜数据，开始对战来贡献数据吧！</div>';
+            content.innerHTML = '<div class="empty-state">暂无数据</div>';
             return;
         }
 
         let html = `
-            <div class="leaderboard-row header">
-                <div class="rank">排名</div>
-                <div class="model-name">模型</div>
-                <div class="stat rating">评分</div>
-            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>排名</th>
+                        <th>模型</th>
+                        <th>评分</th>
+                        <th>对战次数</th>
+                        <th>胜/负/平</th>
+                        <th>胜率</th>
+                    </tr>
+                </thead>
+                <tbody>
         `;
 
         data.leaderboard.forEach((item, index) => {
-            const rank = index + 1;
-            const rankEmoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
             html += `
-                <div class="leaderboard-row">
-                    <div class="rank">${rankEmoji} ${rank}</div>
-                    <div class="model-name">${item.model_name}</div>
-                    <div class="stat rating">${item.rating}</div>
-                </div>
+                <tr>
+                    <td>${index + 1}</td>
+                    <td class="model-name">${item.model_name}</td>
+                    <td class="rating">${item.rating}</td>
+                    <td>${item.total_battles}</td>
+                    <td>${item.wins}/${item.losses}/${item.ties}</td>
+                    <td>${item.win_rate}%</td>
+                </tr>
             `;
         });
 
+        html += '</tbody></table>';
         content.innerHTML = html;
     } catch (error) {
         console.error('加载教学理念排行榜失败:', error);
