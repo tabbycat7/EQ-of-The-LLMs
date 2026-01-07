@@ -853,15 +853,15 @@ body {
     .dashboard-grid {
         grid-template-columns: 1fr;
     }
-
+    
     .dashboard-card-value {
         font-size: 28px;
     }
-
+    
     .dashboard-chart-container {
         padding: 16px;
     }
-
+    
     .dashboard-chart-container canvas {
         max-height: 300px;
     }
@@ -1603,7 +1603,6 @@ body {
         opacity: 0;
         max-height: 0;
     }
-
     to {
         opacity: 1;
         max-height: 500px;

@@ -1543,28 +1543,6 @@ function showMessage(message) {
     showToast(message, 'success');
 }
 
-// 设置提示词解释交互
-function setupPromptExplanation() {
-    const toggleBtn = document.getElementById('toggle-explanation');
-    const content = document.getElementById('explanation-content');
-
-    if (toggleBtn && content) {
-        toggleBtn.addEventListener('click', () => {
-            const isVisible = content.style.display !== 'none';
-
-            if (isVisible) {
-                content.style.display = 'none';
-                content.classList.remove('show');
-                toggleBtn.textContent = '展开';
-            } else {
-                content.style.display = 'block';
-                content.classList.add('show');
-                toggleBtn.textContent = '收起';
-            }
-        });
-    }
-}
-
 
 // ===== 教学理念竞技场模式 =====
 let philosophySessionId = null;

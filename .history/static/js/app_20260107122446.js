@@ -1547,11 +1547,11 @@ function showMessage(message) {
 function setupPromptExplanation() {
     const toggleBtn = document.getElementById('toggle-explanation');
     const content = document.getElementById('explanation-content');
-
+    
     if (toggleBtn && content) {
         toggleBtn.addEventListener('click', () => {
             const isVisible = content.style.display !== 'none';
-
+            
             if (isVisible) {
                 content.style.display = 'none';
                 content.classList.remove('show');

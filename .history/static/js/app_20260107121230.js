@@ -188,9 +188,6 @@ async function initApp() {
     // 设置测评问题
     setupQuestionsMode();
 
-    // 设置提示词解释交互
-    setupPromptExplanation();
-
     // 不在初始化时加载数据，只在用户切换到对应模式时才加载
 }
 
@@ -1541,28 +1538,6 @@ function showError(message) {
 // 一般提示信息
 function showMessage(message) {
     showToast(message, 'success');
-}
-
-// 设置提示词解释交互
-function setupPromptExplanation() {
-    const toggleBtn = document.getElementById('toggle-explanation');
-    const content = document.getElementById('explanation-content');
-
-    if (toggleBtn && content) {
-        toggleBtn.addEventListener('click', () => {
-            const isVisible = content.style.display !== 'none';
-
-            if (isVisible) {
-                content.style.display = 'none';
-                content.classList.remove('show');
-                toggleBtn.textContent = '展开';
-            } else {
-                content.style.display = 'block';
-                content.classList.add('show');
-                toggleBtn.textContent = '收起';
-            }
-        });
-    }
 }
 
 
