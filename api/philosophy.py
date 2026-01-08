@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc, or_
 from sqlalchemy.orm import selectinload
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Dict, Any, Optional
 import random
 
@@ -26,6 +26,17 @@ class StartPhilosophyResponse(BaseModel):
     session_id: str
 
 
+class ContinuePhilosophyRequest(BaseModel):
+    """继续教学理念竞技场请求"""
+    session_id: str
+
+
+class ContinuePhilosophyResponse(BaseModel):
+    """继续教学理念竞技场响应"""
+    session_id: str
+    message: str
+
+
 class PhilosophyChatRequest(BaseModel):
     """教学理念对话请求"""
     session_id: str
@@ -34,7 +45,7 @@ class PhilosophyChatRequest(BaseModel):
 
 class PhilosophyChatResponse(BaseModel):
     """教学理念对话响应"""
-    model_config = {"protected_namespaces": ()}
+    model_config = ConfigDict(protected_namespaces=())
     
     session_id: str
     model_a_response: str
@@ -61,7 +72,7 @@ class PhilosophyVoteRequest(BaseModel):
 
 class VoteResponse(BaseModel):
     """投票响应"""
-    model_config = {"protected_namespaces": ()}
+    model_config = ConfigDict(protected_namespaces=())
     
     success: bool
     message: str
@@ -101,6 +112,34 @@ async def start_philosophy(
     return StartPhilosophyResponse(session_id=philosophy_record.id)
 
 
+@router.post("/continue", response_model=ContinuePhilosophyResponse)
+async def continue_philosophy(
+    request: ContinuePhilosophyRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    在当前两模型基础上继续新的对战轮次:
+    - 不立即创建新的 PhilosophyRecord 记录，只有当用户真正发送消息时才创建
+    - 返回原会话的 ID，前端用于标记"继续对话"模式
+    """
+    
+    # 查找原对战
+    result = await db.execute(
+        select(PhilosophyRecord).where(PhilosophyRecord.id == request.session_id)
+    )
+    old_philosophy = result.scalar_one_or_none()
+
+    if not old_philosophy:
+        raise HTTPException(status_code=404, detail="原对战会话不存在")
+
+    # 不创建新记录，直接返回原会话ID
+    # 当用户真正发送消息时，philosophy_chat 会检测到这是"继续对话"模式并创建新记录
+    return ContinuePhilosophyResponse(
+        session_id=old_philosophy.id,  # 返回原会话ID，前端用它作为标记
+        message="可以继续对话，请在下方输入框中发送消息。",
+    )
+
+
 @router.post("/chat", response_model=PhilosophyChatResponse)
 async def philosophy_chat(
     request: PhilosophyChatRequest,
@@ -117,6 +156,23 @@ async def philosophy_chat(
     
     if not philosophy:
         raise HTTPException(status_code=404, detail="会话不存在")
+    
+    # 如果原会话已完成投票（winner 不为 NULL），说明这是"继续对话"模式
+    # 需要创建新的 PhilosophyRecord 记录，复用模型和历史对话
+    if philosophy.winner is not None:
+        # 创建新的对战会话，复用模型与历史对话
+        new_philosophy = PhilosophyRecord(
+            user_id=None,
+            model_a_id=philosophy.model_a_id,
+            model_b_id=philosophy.model_b_id,
+            conversation=philosophy.conversation.copy() if philosophy.conversation else [],
+            is_revealed=0,
+        )
+        db.add(new_philosophy)
+        await db.flush()  # flush 以获取新记录的 ID
+        await db.refresh(new_philosophy)
+        # 使用新创建的 philosophy 记录
+        philosophy = new_philosophy
     
     # 更新对话历史
     conversation = philosophy.conversation or []

@@ -1,5 +1,37 @@
 // LMArena 前端应用
 
+// Markdown 渲染函数
+function renderMarkdown(text) {
+    if (!text) return '';
+    try {
+        // 检查 marked 是否可用
+        if (typeof marked !== 'undefined') {
+            // 配置 marked 选项
+            marked.setOptions({
+                breaks: true,  // 支持换行
+                gfm: true,    // 启用 GitHub Flavored Markdown
+            });
+            return marked.parse(text);
+        } else {
+            // 如果 marked 不可用，返回转义后的文本
+            return escapeHtml(text);
+        }
+    } catch (error) {
+        console.error('Markdown 渲染失败:', error);
+        return escapeHtml(text);
+    }
+}
+
+// HTML 转义函数（如果还没有的话，检查是否已存在）
+if (typeof escapeHtml === 'undefined') {
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+}
+
 // 全局状态
 let currentMode = 'battle';
 let battleSessionId = null;
@@ -295,10 +327,13 @@ function setupBattleMode() {
 
     startBtn.addEventListener('click', startBattle);
 
-    // 动态绑定新对战按钮（因为按钮在投票后动态生成）
+    // 动态绑定新对战按钮和继续对话按钮（因为按钮在投票后动态生成）
     document.addEventListener('click', (e) => {
         if (e.target && e.target.id === 'new-battle-btn') {
             startBattle();
+        }
+        if (e.target && e.target.id === 'continue-battle-btn') {
+            continueBattle();
         }
     });
 
@@ -736,10 +771,10 @@ async function sendBattleMessage() {
         const finalA = (data.response_a || '').trim();
         const finalB = (data.response_b || '').trim();
         if (responseA) {
-            responseA.innerHTML = finalA || '';
+            responseA.innerHTML = renderMarkdown(finalA) || '';
         }
         if (responseB) {
-            responseB.innerHTML = finalB || '';
+            responseB.innerHTML = renderMarkdown(finalB) || '';
         }
 
         // 显示测评维度选择界面
@@ -947,6 +982,7 @@ async function submitVote(winner) {
                         </div>
                         <div class="reveal-actions">
                             <button id="new-battle-btn" class="primary-btn ghost">开始新对战</button>
+                            <button id="continue-battle-btn" class="secondary-btn ghost">开启新一轮对话</button>
                         </div>
                     </div>
                 `;
@@ -954,7 +990,7 @@ async function submitVote(winner) {
             revealSection.style.display = 'block';
         }
 
-        // 投票完成后：禁用输入和发送，等待开始新对战
+        // 投票完成后：禁用输入和发送，等待开始新对战或继续对话
         const sendBtn = document.getElementById('battle-send-btn');
         sendBtn.disabled = true;
         if (battleInputSection) battleInputSection.style.display = 'none';
@@ -968,6 +1004,58 @@ async function submitVote(winner) {
         voteButtons.forEach(btn => {
             btn.disabled = false;
         });
+    }
+}
+
+// 继续使用当前模型进行对战
+async function continueBattle() {
+    try {
+        if (!battleSessionId) {
+            showError('没有可继续的对战会话');
+            return;
+        }
+
+        showLoading('battle');
+
+        const response = await fetch('/api/battle/continue', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                session_id: battleSessionId
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || '继续对战失败');
+        }
+
+        const data = await response.json();
+        battleSessionId = data.session_id;
+
+        // 隐藏揭示区域
+        const revealSection = document.getElementById('reveal-section');
+        if (revealSection) {
+            revealSection.style.display = 'none';
+        }
+
+        // 显示输入区域
+        if (battleInputSection) {
+            battleInputSection.style.display = 'block';
+        }
+        const sendBtn = document.getElementById('battle-send-btn');
+        if (sendBtn) {
+            sendBtn.disabled = false;
+        }
+
+        showMessage('可以继续对话，请在下方输入框中发送消息。');
+
+    } catch (error) {
+        console.error('继续对战失败:', error);
+        showError(error.message || '继续对战失败，请重试');
+    } finally {
+        hideLoading('battle');
     }
 }
 
@@ -1080,8 +1168,8 @@ async function sendSideBySideMessage() {
         const data = await response.json();
         sideBySideSessionId = data.session_id;
 
-        document.getElementById('sidebyside-response-a').textContent = data.response_a;
-        document.getElementById('sidebyside-response-b').textContent = data.response_b;
+        document.getElementById('sidebyside-response-a').innerHTML = renderMarkdown(data.response_a || '');
+        document.getElementById('sidebyside-response-b').innerHTML = renderMarkdown(data.response_b || '');
 
         // 显示投票区并重置状态
         sideBySideVoted = false;
@@ -1480,19 +1568,19 @@ function renderConversationPreview(conversation, isRevealed) {
                 const modelContent = modelAMatch[1].trim();
                 html += `<div class="history-msg model-a-msg">
                     <div class="history-msg-label">模型 A</div>
-                    <div class="history-msg-content">${escapeHtml(modelContent)}</div>
+                    <div class="history-msg-content">${renderMarkdown(modelContent)}</div>
                 </div>`;
             } else if (modelBMatch) {
                 const modelContent = modelBMatch[1].trim();
                 html += `<div class="history-msg model-b-msg">
                     <div class="history-msg-label">模型 B</div>
-                    <div class="history-msg-content">${escapeHtml(modelContent)}</div>
+                    <div class="history-msg-content">${renderMarkdown(modelContent)}</div>
                 </div>`;
             } else {
                 // 如果没有匹配到格式，直接显示内容
                 html += `<div class="history-msg assistant-msg">
                     <div class="history-msg-label">助手</div>
-                    <div class="history-msg-content">${escapeHtml(content)}</div>
+                    <div class="history-msg-content">${renderMarkdown(content)}</div>
                 </div>`;
             }
         }
@@ -1511,6 +1599,10 @@ function escapeHtml(text) {
 // ===== 工具函数 =====
 function showLoading(mode) {
     // 可以添加全局加载指示器
+}
+
+function hideLoading(mode) {
+    // 可以添加全局加载指示器关闭逻辑
 }
 
 let __toastTimer = null;
@@ -1591,6 +1683,19 @@ function setupPhilosophyMode() {
             } catch (error) {
                 console.error('启动教学理念竞技场失败:', error);
                 showError('启动失败，请重试');
+            }
+        });
+    }
+
+    // 绑定继续对话按钮
+    const continuePhilosophyBtn = document.getElementById('continue-philosophy-btn');
+    if (continuePhilosophyBtn) {
+        continuePhilosophyBtn.addEventListener('click', async () => {
+            try {
+                await continuePhilosophy();
+            } catch (error) {
+                console.error('继续教学理念竞技场失败:', error);
+                showError('继续失败，请重试');
             }
         });
     }
@@ -1807,12 +1912,12 @@ async function sendPhilosophyMessage() {
 
         if (responseA) {
             const finalA = data.model_a_response || '模型 A 暂时无法回复';
-            responseA.innerHTML = finalA;
+            responseA.innerHTML = renderMarkdown(finalA);
         }
 
         if (responseB) {
             const finalB = data.model_b_response || '模型 B 暂时无法回复';
-            responseB.innerHTML = finalB;
+            responseB.innerHTML = renderMarkdown(finalB);
         }
 
         // 显示测评维度选择界面
@@ -2037,7 +2142,7 @@ async function submitPhilosophyVote(winner) {
 
         // 显示新一轮按钮
         document.getElementById('philosophy-new-round').style.display = 'block';
-        // 只有点击"开始新对战"按钮才重新出现输入框
+        // 投票完成后：禁用输入和发送，等待开始新对战或继续对话
         const sendBtn = document.getElementById('send-philosophy-btn');
         sendBtn.disabled = true;
         if (philosophyInputSection) philosophyInputSection.style.display = 'none';
@@ -2051,6 +2156,62 @@ async function submitPhilosophyVote(winner) {
         voteButtons.forEach(btn => {
             btn.disabled = false;
         });
+    }
+}
+
+// 继续使用当前模型进行教学理念竞技场对战
+async function continuePhilosophy() {
+    try {
+        if (!philosophySessionId) {
+            showError('没有可继续的对战会话');
+            return;
+        }
+
+        showLoading('philosophy');
+
+        const response = await fetch('/api/philosophy/continue', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                session_id: philosophySessionId
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || '继续对战失败');
+        }
+
+        const data = await response.json();
+        philosophySessionId = data.session_id;
+
+        // 隐藏揭示区域和新一轮按钮
+        const revealSection = document.getElementById('philosophy-reveal-section');
+        if (revealSection) {
+            revealSection.style.display = 'none';
+        }
+        const newRound = document.getElementById('philosophy-new-round');
+        if (newRound) {
+            newRound.style.display = 'none';
+        }
+
+        // 显示输入区域
+        if (philosophyInputSection) {
+            philosophyInputSection.style.display = 'block';
+        }
+        const sendBtn = document.getElementById('send-philosophy-btn');
+        if (sendBtn) {
+            sendBtn.disabled = false;
+        }
+
+        showMessage('可以继续对话，请在下方输入框中发送消息。');
+
+    } catch (error) {
+        console.error('继续对战失败:', error);
+        showError(error.message || '继续对战失败，请重试');
+    } finally {
+        hideLoading('philosophy');
     }
 }
 
