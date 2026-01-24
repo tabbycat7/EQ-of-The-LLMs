@@ -2,7 +2,6 @@
 
 // 全局状态
 let currentMode = 'battle';
-let currentUserId = null; // 当前登录用户ID
 let battleSessionId = null;
 let sideBySideSessionId = null;
 let availableModels = [];
@@ -14,77 +13,10 @@ let sideBySideInputSection = null;
 
 // 初始化应用
 document.addEventListener('DOMContentLoaded', async () => {
-    // 检查登录状态
-    await checkLoginStatus();
+    // 直接显示主应用（已移除登录功能）
+    showMainApp();
+    await initApp();
 });
-
-// 检查登录状态
-async function checkLoginStatus() {
-    // 默认显示登录界面（防止闪烁）
-    showLoginModal();
-
-    try {
-        const response = await fetch('/api/auth/check', {
-            credentials: 'include'  // 重要：包含cookies
-        });
-        const data = await response.json();
-
-        if (data.success && data.user_id) {
-            // 记录当前登录用户ID
-            currentUserId = data.user_id;
-            // 已登录，显示主界面
-            showMainApp();
-            // 初始化应用
-            await initApp();
-        } else {
-            // 未登录，清空当前用户ID
-            currentUserId = null;
-            // 未登录，保持显示登录界面（已经在上面设置了）
-            // 确保登录界面可见
-            showLoginModal();
-        }
-    } catch (error) {
-        console.error('检查登录状态失败:', error);
-        // 出错时保持显示登录界面（已经在上面设置了）
-        showLoginModal();
-    }
-}
-
-// 显示登录界面
-function showLoginModal() {
-    const loginModal = document.getElementById('login-modal');
-    const appShell = document.getElementById('app-shell');
-    if (loginModal) loginModal.style.display = 'flex';
-    if (appShell) appShell.style.display = 'none';
-
-    // 重置登录表单：清空输入框和错误信息，重置按钮状态
-    const userIdInput = document.getElementById('login-user-id');
-    const passwordInput = document.getElementById('login-password');
-    const submitBtn = document.getElementById('login-submit-btn');
-    const errorDiv = document.getElementById('login-error');
-
-    if (userIdInput) userIdInput.value = '';
-    if (passwordInput) passwordInput.value = '';
-    if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.textContent = '登录';
-    }
-    if (errorDiv) {
-        errorDiv.textContent = '';
-        errorDiv.style.display = 'none';
-    }
-
-    // 设置登录表单提交事件
-    const loginForm = document.getElementById('login-form');
-    if (loginForm) {
-        loginForm.onsubmit = handleLogin;
-    }
-
-    // 聚焦到用户ID输入框，方便用户输入
-    if (userIdInput) {
-        setTimeout(() => userIdInput.focus(), 100);
-    }
-}
 
 // 显示主应用界面
 function showMainApp() {
@@ -94,76 +26,7 @@ function showMainApp() {
     if (appShell) appShell.style.display = 'flex';
 }
 
-// 处理登录
-async function handleLogin(e) {
-    e.preventDefault();
-
-    const userIdInput = document.getElementById('login-user-id');
-    const passwordInput = document.getElementById('login-password');
-    const submitBtn = document.getElementById('login-submit-btn');
-    const errorDiv = document.getElementById('login-error');
-
-    const userId = userIdInput.value.trim();
-    const password = passwordInput.value;
-
-    if (!userId || !password) {
-        showLoginError('请输入用户ID和密码');
-        return;
-    }
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = '登录中...';
-
-    if (errorDiv) {
-        errorDiv.style.display = 'none';
-    }
-
-    try {
-        const response = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            credentials: 'include',  // 重要：包含cookies
-            body: JSON.stringify({
-                user_id: userId,
-                password: password
-            })
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-            // 记录当前登录用户ID
-            currentUserId = data.user_id || null;
-            // 登录成功，显示主界面
-            showMainApp();
-            // 初始化应用
-            await initApp();
-        } else {
-            // 登录失败
-            showLoginError(data.message || '登录失败，请检查用户名和密码');
-            submitBtn.disabled = false;
-            submitBtn.textContent = '登录';
-        }
-    } catch (error) {
-        console.error('登录失败:', error);
-        showLoginError('登录失败，请稍后重试');
-        submitBtn.disabled = false;
-        submitBtn.textContent = '登录';
-    }
-}
-
-// 显示登录错误
-function showLoginError(message) {
-    const errorDiv = document.getElementById('login-error');
-    if (errorDiv) {
-        errorDiv.textContent = message;
-        errorDiv.style.display = 'block';
-    }
-}
-
-// 初始化应用（在登录成功后调用）
+// 初始化应用
 async function initApp() {
     // 设置模式切换
     setupModeSelector();
@@ -183,331 +46,9 @@ async function initApp() {
     // 设置测评问题
     setupQuestionsMode();
 
-    // 设置退出登录
-    setupLogout();
-
-    // 设置管理员面板（仅 admin 可见）
-    setupAdminPanel();
-
     // 不在初始化时加载数据，只在用户切换到对应模式时才加载
 }
 
-// 设置退出登录功能
-function setupLogout() {
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', handleLogout);
-    }
-}
-
-// 设置管理员面板（仅 admin 可见）
-function setupAdminPanel() {
-    const addBtn = document.getElementById('admin-add-user-btn');
-    const adminModeBtn = document.querySelector('.mode-btn[data-mode="admin"]');
-    const dashboardModeBtn = document.querySelector('.mode-btn[data-mode="dashboard"]');
-    const refreshDashboardBtn = document.getElementById('refresh-dashboard-btn');
-
-    // 仅 admin 显示"添加用户"和"数据看板"按钮
-    if (currentUserId === 'admin') {
-        if (adminModeBtn) {
-            adminModeBtn.style.display = 'inline-flex';
-        }
-        if (dashboardModeBtn) {
-            dashboardModeBtn.style.display = 'inline-flex';
-        }
-        if (addBtn) {
-            addBtn.onclick = handleAdminAddUser;
-        }
-        if (refreshDashboardBtn) {
-            refreshDashboardBtn.onclick = loadDashboard;
-        }
-    } else {
-        if (adminModeBtn) {
-            adminModeBtn.style.display = 'none';
-        }
-        if (dashboardModeBtn) {
-            dashboardModeBtn.style.display = 'none';
-        }
-    }
-}
-
-// 处理退出登录
-async function handleLogout() {
-    try {
-        const response = await fetch('/api/auth/logout', {
-            method: 'POST',
-            credentials: 'include'  // 重要：包含cookies
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            // 清空当前用户ID
-            currentUserId = null;
-            // 退出成功，显示登录界面
-            showLoginModal();
-            // 清空前端状态
-            battleSessionId = null;
-            sideBySideSessionId = null;
-            showMessage('已退出登录');
-        } else {
-            showError('退出登录失败');
-        }
-    } catch (error) {
-        console.error('退出登录失败:', error);
-        // 即使API调用失败，也尝试显示登录界面
-        showLoginModal();
-        showError('退出登录失败，请重试');
-    }
-}
-
-// 设置管理员模式
-function setupAdminMode() {
-    const userIdInput = document.getElementById('admin-new-user-id');
-    const passwordInput = document.getElementById('admin-new-user-password');
-    const msgDiv = document.getElementById('admin-add-user-msg');
-
-    // 清空表单和消息
-    if (userIdInput) userIdInput.value = '';
-    if (passwordInput) passwordInput.value = '';
-    if (msgDiv) {
-        msgDiv.textContent = '';
-        msgDiv.style.color = '#6b7280';
-    }
-
-    // 聚焦到用户ID输入框
-    if (userIdInput) {
-        setTimeout(() => userIdInput.focus(), 50);
-    }
-}
-
-// 管理员添加用户
-async function handleAdminAddUser() {
-    const userIdInput = document.getElementById('admin-new-user-id');
-    const passwordInput = document.getElementById('admin-new-user-password');
-    const msgDiv = document.getElementById('admin-add-user-msg');
-    const addBtn = document.getElementById('admin-add-user-btn');
-
-    if (!userIdInput || !passwordInput || !addBtn) return;
-
-    const userId = userIdInput.value.trim();
-    const password = passwordInput.value;
-
-    if (!userId || !password) {
-        if (msgDiv) {
-            msgDiv.textContent = '请输入新用户ID和密码';
-            msgDiv.style.color = '#b91c1c';
-        }
-        return;
-    }
-
-    addBtn.disabled = true;
-
-    try {
-        const response = await fetch('/api/auth/users', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-                user_id: userId,
-                password: password,
-            }),
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-            // 显示成功消息
-            if (msgDiv) {
-                msgDiv.textContent = '用户添加成功';
-                msgDiv.style.color = '#166534';
-            }
-            // 添加成功后清空表单
-            setupAdminMode();
-        } else {
-            if (msgDiv) {
-                msgDiv.textContent = data.detail || data.message || '添加用户失败';
-                msgDiv.style.color = '#b91c1c';
-            }
-        }
-    } catch (error) {
-        console.error('添加用户失败:', error);
-        if (msgDiv) {
-            msgDiv.textContent = '添加用户失败，请稍后重试';
-            msgDiv.style.color = '#b91c1c';
-        }
-    } finally {
-        addBtn.disabled = false;
-    }
-}
-
-// 加载数据看板统计数据
-async function loadDashboard() {
-    const container = document.getElementById('dashboard-content');
-    if (!container) return;
-
-    container.innerHTML = '<div class="loading">加载中...</div>';
-
-    try {
-        const response = await fetch('/api/auth/statistics', {
-            credentials: 'include'
-        });
-
-        if (!response.ok) {
-            if (response.status === 403) {
-                container.innerHTML = '<div class="empty-state">权限不足，只有管理员可以查看数据看板</div>';
-                return;
-            }
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        renderDashboard(data);
-    } catch (error) {
-        console.error('加载数据看板失败:', error);
-        container.innerHTML = '<div class="empty-state">加载数据失败，请稍后重试</div>';
-    }
-}
-
-// 渲染数据看板
-let dashboardChart = null;
-
-function renderDashboard(stats) {
-    const container = document.getElementById('dashboard-content');
-    if (!container) return;
-
-    const completionRate = stats.total_battles > 0
-        ? ((stats.completed_battles / stats.total_battles) * 100).toFixed(1)
-        : 0;
-
-    container.innerHTML = `
-        <div class="dashboard-card">
-            <div class="dashboard-card-icon">👥</div>
-            <div class="dashboard-card-content">
-                <div class="dashboard-card-label">总用户数</div>
-                <div class="dashboard-card-value">${stats.total_users}</div>
-            </div>
-        </div>
-        <div class="dashboard-card">
-            <div class="dashboard-card-icon">✅</div>
-            <div class="dashboard-card-content">
-                <div class="dashboard-card-label">当前作答人数</div>
-                <div class="dashboard-card-value">${stats.active_users}</div>
-            </div>
-        </div>
-        <div class="dashboard-card">
-            <div class="dashboard-card-icon">📝</div>
-            <div class="dashboard-card-content">
-                <div class="dashboard-card-label">总测评问题数量</div>
-                <div class="dashboard-card-value">${stats.total_battles}</div>
-            </div>
-        </div>
-        <div class="dashboard-card">
-            <div class="dashboard-card-icon">✓</div>
-            <div class="dashboard-card-content">
-                <div class="dashboard-card-label">已投票对战</div>
-                <div class="dashboard-card-value">${stats.completed_battles}</div>
-                <div class="dashboard-card-subtext">投票率: ${completionRate}%</div>
-            </div>
-        </div>
-    `;
-
-    // 渲染折线图
-    renderDashboardChart(stats.daily_battles || []);
-}
-
-// 渲染折线图
-function renderDashboardChart(dailyBattles) {
-    const chartContainer = document.getElementById('dashboard-chart-container');
-    const chartCanvas = document.getElementById('dashboard-chart');
-
-    if (!chartContainer || !chartCanvas) return;
-
-    // 显示图表容器
-    chartContainer.style.display = 'block';
-
-    // 销毁之前的图表（如果存在）
-    if (dashboardChart) {
-        dashboardChart.destroy();
-    }
-
-    // 准备数据
-    const labels = dailyBattles.map(item => {
-        const date = new Date(item.date);
-        const month = date.getMonth() + 1;
-        const day = date.getDate();
-        return `${month}/${day}`;
-    });
-    const data = dailyBattles.map(item => item.count);
-
-    // 创建新图表
-    const ctx = chartCanvas.getContext('2d');
-    dashboardChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: '作答数量',
-                data: data,
-                borderColor: '#111827',
-                backgroundColor: 'rgba(17, 24, 39, 0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0,
-                pointBackgroundColor: '#111827',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointRadius: 4,
-                pointHoverRadius: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    padding: 12,
-                    titleFont: {
-                        size: 14,
-                        weight: 'bold'
-                    },
-                    bodyFont: {
-                        size: 13
-                    },
-                    displayColors: false,
-                    callbacks: {
-                        label: function (context) {
-                            return '作答数量: ' + context.parsed.y;
-                        }
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1,
-                        precision: 0
-                    },
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.05)'
-                    }
-                },
-                x: {
-                    grid: {
-                        display: false
-                    }
-                }
-            }
-        }
-    });
-}
 
 // 加载可用模型
 async function loadModels() {
@@ -593,14 +134,6 @@ function setupModeSelector() {
             if (mode === 'questions') {
                 loadQuestions();
             }
-            // 如果切换到管理员模式，清空表单
-            if (mode === 'admin') {
-                setupAdminMode();
-            }
-            // 如果切换到数据看板，加载统计数据
-            if (mode === 'dashboard') {
-                loadDashboard();
-            }
         });
     });
 }
@@ -644,8 +177,7 @@ async function startBattle() {
         showLoading('battle');
 
         const response = await fetch('/api/battle/start', {
-            method: 'POST',
-            credentials: 'include'  // 确保包含 cookies（用于 session 认证）
+            method: 'POST'
         });
 
         if (!response.ok) throw new Error('启动对战失败');
@@ -718,87 +250,18 @@ async function sendBattleMessage() {
                 <div class="message user"></div>
             </div>
             <div class="responses-grid-inner">
-                <div class="response-box">
-                    <div class="response-header">模型 A</div>
+                <div class="response-box response-box-a">
+                    <div class="response-header">🦊 小狐狸</div>
                     <div class="response-content" data-role="response-a">
-                        <div class="loading">思考中...</div>
-                    </div>
-                    <div class="evaluation-section" data-model="model_a" style="display: none;">
-                        <div class="evaluation-title">测评维度</div>
-                        <div class="evaluation-dimensions">
-                            <div class="evaluation-item">
-                                <label>精准感知</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="perception" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="perception" data-value="0">不符合要求</button>
-                                </div>
-                            </div>
-                            <div class="evaluation-item">
-                                <label>合适口吻</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="calibration" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="calibration" data-value="0">不符合要求</button>
-                                </div>
-                            </div>
-                            <div class="evaluation-item">
-                                <label>坚持立场</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="differentiation" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="differentiation" data-value="0">不符合要求</button>
-                                </div>
-                            </div>
-                            <div class="evaluation-item">
-                                <label>有效引导</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="regulation" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="regulation" data-value="0">不符合要求</button>
-                                </div>
-                            </div>
-                        </div>
+                        <div class="loading">🦊 小狐狸正在思考...</div>
                     </div>
                 </div>
-                <div class="response-box">
-                    <div class="response-header">模型 B</div>
+                <div class="response-box response-box-b">
+                    <div class="response-header">🐰 小兔子</div>
                     <div class="response-content" data-role="response-b">
-                        <div class="loading">思考中...</div>
-                    </div>
-                    <div class="evaluation-section" data-model="model_b" style="display: none;">
-                        <div class="evaluation-title">测评维度</div>
-                        <div class="evaluation-dimensions">
-                            <div class="evaluation-item">
-                                <label>精准感知</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="perception" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="perception" data-value="0">不符合要求</button>
-                                </div>
-                            </div>
-                            <div class="evaluation-item">
-                                <label>合适口吻</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="calibration" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="calibration" data-value="0">不符合要求</button>
-                                </div>
-                            </div>
-                            <div class="evaluation-item">
-                                <label>坚持立场</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="differentiation" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="differentiation" data-value="0">不符合要求</button>
-                                </div>
-                            </div>
-                            <div class="evaluation-item">
-                                <label>有效引导</label>
-                                <div class="evaluation-options">
-                                    <button class="eval-btn" data-dimension="regulation" data-value="1">符合要求</button>
-                                    <button class="eval-btn" data-dimension="regulation" data-value="0">不符合要求</button>
-                                </div>
-                            </div>
-                        </div>
+                        <div class="loading">🐰 小兔子正在思考...</div>
                     </div>
                 </div>
-            </div>
-            <div class="evaluation-submit-section" style="display: none;">
-                <button class="submit-evaluation-btn primary-btn">提交测评</button>
             </div>
         `;
         battleResponses.appendChild(roundEl);
@@ -815,7 +278,6 @@ async function sendBattleMessage() {
         const response = await fetch('/api/battle/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',  // 确保包含 cookies（用于 session 认证）
             body: JSON.stringify({
                 session_id: battleSessionId,
                 message: message
@@ -861,23 +323,24 @@ async function sendBattleMessage() {
         const finalA = (data.response_a || '').trim();
         const finalB = (data.response_b || '').trim();
         if (responseA) {
-            responseA.innerHTML = finalA || '';
+            responseA.classList.add('markdown-content');
+            responseA.innerHTML = renderMarkdown(finalA);
         }
         if (responseB) {
-            responseB.innerHTML = finalB || '';
+            responseB.classList.add('markdown-content');
+            responseB.innerHTML = renderMarkdown(finalB);
         }
 
-        // 显示测评维度选择界面
-        const evalSections = roundEl.querySelectorAll('.evaluation-section');
-        evalSections.forEach(section => section.style.display = 'block');
-        const submitSection = roundEl.querySelector('.evaluation-submit-section');
-        if (submitSection) submitSection.style.display = 'block';
-
-        // 设置测评维度选择事件
-        setupEvaluationButtons(roundEl);
-
-        // 隐藏投票区域（等测评提交后才显示）
-        document.getElementById('voting-section').style.display = 'none';
+        // 显示投票区域，并确保投票按钮是启用状态
+        const votingSection = document.getElementById('voting-section');
+        if (votingSection) {
+            votingSection.style.display = 'block';
+            // 重新启用所有投票按钮（防止之前的禁用状态影响新的投票）
+            const voteButtons = document.querySelectorAll('.battle-vote-btn');
+            voteButtons.forEach(btn => {
+                btn.disabled = false;
+            });
+        }
 
         input.value = '';
 
@@ -891,105 +354,6 @@ async function sendBattleMessage() {
         if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
             console.error('网络错误：可能后端服务未启动或无法访问');
         }
-    }
-}
-
-// 设置测评维度选择按钮
-function setupEvaluationButtons(roundEl) {
-    const evalButtons = roundEl.querySelectorAll('.eval-btn');
-    const submitBtn = roundEl.querySelector('.submit-evaluation-btn');
-
-    // 存储当前轮的测评数据
-    const evaluationData = {
-        model_a: { perception: null, calibration: null, differentiation: null, regulation: null },
-        model_b: { perception: null, calibration: null, differentiation: null, regulation: null }
-    };
-
-    evalButtons.forEach(btn => {
-        btn.addEventListener('click', function () {
-            const model = this.closest('.evaluation-section').dataset.model;
-            const dimension = this.dataset.dimension;
-            const value = parseInt(this.dataset.value);
-
-            // 更新数据
-            evaluationData[model][dimension] = value;
-
-            // 更新按钮样式：同维度其他按钮取消选中，当前按钮选中
-            const dimensionGroup = this.closest('.evaluation-item');
-            const allButtonsInGroup = dimensionGroup.querySelectorAll('.eval-btn');
-            allButtonsInGroup.forEach(b => b.classList.remove('selected'));
-            this.classList.add('selected');
-
-            // 检查是否所有维度都已选择
-            const allSelected = checkAllDimensionsSelected(roundEl, evaluationData);
-            if (submitBtn) {
-                submitBtn.disabled = !allSelected;
-            }
-        });
-    });
-
-    // 提交测评按钮
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.addEventListener('click', async () => {
-            await submitEvaluation(roundEl, evaluationData);
-        });
-    }
-}
-
-// 检查是否所有维度都已选择
-function checkAllDimensionsSelected(roundEl, evaluationData) {
-    const dimensions = ['perception', 'calibration', 'differentiation', 'regulation'];
-    for (const model of ['model_a', 'model_b']) {
-        for (const dim of dimensions) {
-            if (evaluationData[model][dim] === null) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-// 提交测评维度
-async function submitEvaluation(roundEl, evaluationData) {
-    try {
-        const submitBtn = roundEl.querySelector('.submit-evaluation-btn');
-        if (submitBtn) submitBtn.disabled = true;
-
-        const response = await fetch('/api/battle/evaluation', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',  // 确保包含 cookies（用于 session 认证）
-            body: JSON.stringify({
-                session_id: battleSessionId,
-                evaluation: evaluationData
-            })
-        });
-
-        if (!response.ok) throw new Error('提交测评失败');
-
-        // 隐藏测评区域
-        const evalSections = roundEl.querySelectorAll('.evaluation-section');
-        evalSections.forEach(section => section.style.display = 'none');
-        const submitSection = roundEl.querySelector('.evaluation-submit-section');
-        if (submitSection) submitSection.style.display = 'none';
-
-        // 显示投票区域，并确保投票按钮是启用状态
-        const votingSection = document.getElementById('voting-section');
-        if (votingSection) {
-            votingSection.style.display = 'block';
-            // 重新启用所有投票按钮（防止之前的禁用状态影响新的投票）
-            const voteButtons = document.querySelectorAll('.battle-vote-btn');
-            voteButtons.forEach(btn => {
-                btn.disabled = false;
-            });
-        }
-
-    } catch (error) {
-        console.error('提交测评失败:', error);
-        showError('提交测评失败，请重试');
-        const submitBtn = roundEl.querySelector('.submit-evaluation-btn');
-        if (submitBtn) submitBtn.disabled = false;
     }
 }
 
@@ -1007,7 +371,6 @@ async function submitVote(winner) {
         const response = await fetch('/api/battle/vote', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',  // 确保包含 cookies（用于 session 认证）
             body: JSON.stringify({
                 session_id: battleSessionId,
                 winner: winner
@@ -1049,11 +412,17 @@ async function submitVote(winner) {
 
         const data = await response.json();
 
-        // 隐藏投票区域
-        document.getElementById('voting-section').style.display = 'none';
+        // 触发庆祝效果
+        showVoteCelebration(winner);
 
-        // 显示"开始新对战 / 继续当前模型对战"按钮区域
-        document.getElementById('reveal-section').style.display = 'block';
+        // 延迟隐藏投票区域，让庆祝效果显示
+        setTimeout(() => {
+            // 隐藏投票区域
+            document.getElementById('voting-section').style.display = 'none';
+
+            // 显示"开始新对战 / 继续当前模型对战"按钮区域
+            document.getElementById('reveal-section').style.display = 'block';
+        }, 800);
 
         // 本轮投票完成后：保持输入区域隐藏，发送按钮禁用
         // 只有点击"开始新对战"按钮（startBattle/newBattle）才重新出现输入框
@@ -1088,7 +457,6 @@ async function continueCurrentBattle() {
         const resp = await fetch('/api/battle/continue', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',  // 确保包含 cookies（用于 session 认证）
             body: JSON.stringify({ session_id: battleSessionId }),
         });
 
@@ -1234,8 +602,16 @@ async function sendSideBySideMessage() {
         const data = await response.json();
         sideBySideSessionId = data.session_id;
 
-        document.getElementById('sidebyside-response-a').textContent = data.response_a;
-        document.getElementById('sidebyside-response-b').textContent = data.response_b;
+        const responseAEl = document.getElementById('sidebyside-response-a');
+        const responseBEl = document.getElementById('sidebyside-response-b');
+        if (responseAEl) {
+            responseAEl.classList.add('markdown-content');
+            responseAEl.innerHTML = renderMarkdown(data.response_a || '');
+        }
+        if (responseBEl) {
+            responseBEl.classList.add('markdown-content');
+            responseBEl.innerHTML = renderMarkdown(data.response_b || '');
+        }
 
         // 显示投票区并重置状态
         sideBySideVoted = false;
@@ -1388,9 +764,7 @@ async function loadQuestions() {
     container.innerHTML = '<div class="loading">加载问题列表...</div>';
 
     try {
-        const response = await fetch('/api/battle/questions', {
-            credentials: 'include'  // 确保包含 cookies（用于 session 认证）
-        });
+        const response = await fetch('/api/battle/questions');
 
         if (!response.ok) {
             let errorMessage = '加载问题列表失败';
@@ -1482,7 +856,6 @@ async function updateQuestionValid(battleId, isValid) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            credentials: 'include',
             body: JSON.stringify({
                 battle_id: battleId,
                 is_question_valid: isValid
@@ -1533,9 +906,7 @@ async function loadHistory() {
     container.innerHTML = '<div class="loading">加载历史对话...</div>';
 
     try {
-        const response = await fetch('/api/battle/history', {
-            credentials: 'include'  // 确保包含 cookies（用于 session 认证）
-        });
+        const response = await fetch('/api/battle/history');
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ detail: '加载历史对话失败' }));
@@ -1626,19 +997,19 @@ function renderConversationPreview(conversation, isRevealed) {
                 const modelContent = modelAMatch[1].trim();
                 html += `<div class="history-msg model-a-msg">
                     <div class="history-msg-label">模型 A</div>
-                    <div class="history-msg-content">${escapeHtml(modelContent)}</div>
+                    <div class="history-msg-content markdown-content">${renderMarkdown(modelContent)}</div>
                 </div>`;
             } else if (modelBMatch) {
                 const modelContent = modelBMatch[1].trim();
                 html += `<div class="history-msg model-b-msg">
                     <div class="history-msg-label">模型 B</div>
-                    <div class="history-msg-content">${escapeHtml(modelContent)}</div>
+                    <div class="history-msg-content markdown-content">${renderMarkdown(modelContent)}</div>
                 </div>`;
             } else {
                 // 如果没有匹配到格式，直接显示内容
                 html += `<div class="history-msg assistant-msg">
                     <div class="history-msg-label">助手</div>
-                    <div class="history-msg-content">${escapeHtml(content)}</div>
+                    <div class="history-msg-content markdown-content">${renderMarkdown(content)}</div>
                 </div>`;
             }
         }
@@ -1652,6 +1023,29 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Markdown 渲染函数
+function renderMarkdown(text) {
+    if (!text) return '';
+    try {
+        // 配置 marked 选项
+        if (typeof marked !== 'undefined') {
+            marked.setOptions({
+                breaks: true,  // 支持 GitHub 风格的换行
+                gfm: true,     // 启用 GitHub Flavored Markdown
+                headerIds: false,
+                mangle: false
+            });
+            return marked.parse(text);
+        } else {
+            // 如果 marked 未加载，返回转义的 HTML
+            return escapeHtml(text);
+        }
+    } catch (error) {
+        console.error('Markdown 渲染失败:', error);
+        return escapeHtml(text);
+    }
 }
 
 // ===== 工具函数 =====
@@ -1687,4 +1081,70 @@ function showError(message) {
 // 一般提示信息
 function showMessage(message) {
     showToast(message, 'success');
+}
+
+// ===== 小学生友好的庆祝效果 =====
+function showVoteCelebration(winner) {
+    // 获取对应的投票按钮并添加选中效果
+    const clickedBtn = document.querySelector(`.battle-vote-btn[data-winner="${winner}"]`);
+    if (clickedBtn) {
+        clickedBtn.classList.add('selected');
+    }
+
+    // 创建庆祝消息 - 小动物主题
+    const messages = {
+        'model_a': ['🦊 小狐狸赢啦！', '🎉 小狐狸好聪明！', '✨ 你支持小狐狸！', '🌟 小狐狸真棒！'],
+        'model_b': ['🐰 小兔子赢啦！', '🎉 小兔子好厉害！', '✨ 你支持小兔子！', '🌟 小兔子真棒！'],
+        'tie': ['🎊 它们都超棒！', '🌈 小狐狸和小兔子都很厉害！', '👏 两个都是好朋友！'],
+        'both_bad': ['💪 它们会加油的！', '🌱 下次会更好！', '😊 继续努力吧！']
+    };
+
+    const msgList = messages[winner] || ['🎉 投票成功！'];
+    const randomMsg = msgList[Math.floor(Math.random() * msgList.length)];
+
+    // 显示庆祝 toast
+    showCelebrationToast(randomMsg);
+
+    // 发射彩色粒子效果
+    createConfetti();
+}
+
+// 庆祝提示（带动画）
+function showCelebrationToast(message) {
+    // 创建临时的庆祝提示元素
+    const celebration = document.createElement('div');
+    celebration.className = 'celebration-toast';
+    celebration.innerHTML = `<span class="celebration-text">${message}</span>`;
+    document.body.appendChild(celebration);
+
+    // 触发动画
+    setTimeout(() => celebration.classList.add('show'), 10);
+
+    // 移除元素
+    setTimeout(() => {
+        celebration.classList.remove('show');
+        setTimeout(() => celebration.remove(), 300);
+    }, 2000);
+}
+
+// 创建彩色粒子/confetti 效果
+function createConfetti() {
+    const colors = ['#ff6b9d', '#4facfe', '#22c55e', '#fbbf24', '#a855f7', '#ec4899', '#00f2fe'];
+    const container = document.createElement('div');
+    container.className = 'confetti-container';
+    document.body.appendChild(container);
+
+    // 创建多个彩色粒子
+    for (let i = 0; i < 50; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.setProperty('--x', `${Math.random() * 100}vw`);
+        confetti.style.setProperty('--delay', `${Math.random() * 0.5}s`);
+        confetti.style.setProperty('--rotation', `${Math.random() * 360}deg`);
+        confetti.style.setProperty('--color', colors[Math.floor(Math.random() * colors.length)]);
+        container.appendChild(confetti);
+    }
+
+    // 清理粒子
+    setTimeout(() => container.remove(), 3000);
 }

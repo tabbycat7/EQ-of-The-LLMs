@@ -3,7 +3,6 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.sessions import SessionMiddleware
 from contextlib import asynccontextmanager
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -13,7 +12,6 @@ import secrets
 import logging
 
 from api import battle_router, chat_router, leaderboard_router
-from api.auth import router as auth_router
 from models.database import init_db
 
 # 配置日志
@@ -23,8 +21,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# 使用环境变量或生成固定的secret key用于session
-SESSION_SECRET_KEY = os.getenv("SESSION_SECRET_KEY", "lmarena-session-secret-key-change-in-production")
 
 
 @asynccontextmanager
@@ -32,7 +28,9 @@ async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # 启动时初始化数据库
     print("初始化数据库...")
-    await init_db()
+    # 检查环境变量，决定是否重置数据库
+    reset_db = os.getenv("RESET_DB", "false").lower() == "true"
+    await init_db(reset_db=reset_db)
     print("数据库初始化完成！")
     yield
     # 关闭时的清理工作
@@ -56,14 +54,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 配置 Session 中间件（需要在CORS之后，因为需要处理cookies）
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=SESSION_SECRET_KEY,
-    max_age=86400 * 30,  # 30天
-    same_site="lax"
-)
-
 # 挂载静态文件
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -71,7 +61,6 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 # 注册 API 路由
-app.include_router(auth_router)
 app.include_router(battle_router)
 app.include_router(chat_router)
 app.include_router(leaderboard_router)

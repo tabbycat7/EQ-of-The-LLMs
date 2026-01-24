@@ -1,14 +1,13 @@
 """Chat 聊天模式 API（仅 Side-by-Side 对比模式）"""
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel, ConfigDict
 from typing import List, Dict, Optional
 
 from models.database import get_db
-from models.schemas import ChatSession, ModelRating, SideBySideVote, User
+from models.schemas import ChatSession, ModelRating, SideBySideVote
 from services.model_service import ModelService
-from api.auth import get_current_user
 import config
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -77,21 +76,12 @@ async def get_models():
 @router.post("/sidebyside", response_model=SideBySideResponse)
 async def side_by_side_chat(
     request: SideBySideRequest,
-    req: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """
     并排对比模式
     同时查看两个模型的回答（非匿名）
     """
-    # 获取当前登录用户ID（先不更新提问次数，等操作成功后再更新）
-    current_user_id = None
-    try:
-        current_user_id = get_current_user(req)
-    except HTTPException:
-        # 如果未登录，继续执行但不更新提问次数
-        pass
-    
     # 验证模型是否存在
     model_a_info = model_service.get_model_info(request.model_a_id)
     model_b_info = model_service.get_model_info(request.model_b_id)
@@ -109,14 +99,9 @@ async def side_by_side_chat(
         session = result.scalar_one_or_none()
         if not session:
             raise HTTPException(status_code=404, detail="会话不存在")
-        
-        # 验证会话是否属于当前用户（如果用户已登录）
-        if current_user_id is not None:
-            if session.user_id != current_user_id:
-                raise HTTPException(status_code=403, detail="无权访问此会话")
     else:
         session = ChatSession(
-            user_id=current_user_id,
+            user_id=None,
             mode="sidebyside",
             model_ids=[request.model_a_id, request.model_b_id],
             conversation=[]
@@ -146,13 +131,6 @@ async def side_by_side_chat(
         "content": f"[{model_b_info['name']}]: {response_b}"
     })
     session.conversation = messages
-    
-    # 更新用户提问次数（在对话成功后再更新，保证一致性）
-    if current_user_id is not None:
-        result = await db.execute(select(User).where(User.id == current_user_id))
-        user = result.scalar_one_or_none()
-        if user:
-            user.question_count = (user.question_count or 0) + 1
     
     await db.commit()
     

@@ -7,10 +7,9 @@ from typing import Optional, List
 import random
 
 from models.database import get_db, async_session_maker
-from models.schemas import Battle, Vote, User, BattleEvaluation
+from models.schemas import Battle, Vote
 from services.model_service import ModelService
 from services.rating_service import RatingService
-from api.auth import get_current_user
 import config
 
 router = APIRouter(prefix="/api/battle", tags=["battle"])
@@ -34,18 +33,6 @@ class ChatResponse(BaseModel):
     session_id: str
     response_a: str
     response_b: str
-
-
-class EvaluationRequest(BaseModel):
-    """测评维度请求"""
-    session_id: str
-    evaluation: dict  # {"model_a": {"perception": 1, "calibration": 1, ...}, "model_b": {...}}
-
-
-class EvaluationResponse(BaseModel):
-    """测评维度响应"""
-    success: bool
-    message: str
 
 
 class VoteRequest(BaseModel):
@@ -173,13 +160,6 @@ async def continue_battle(
     - 不立即创建新的 Battle 记录，只有当用户真正发送消息时才创建
     - 返回原会话的 ID，前端用于标记"继续对话"模式
     """
-    # 获取当前登录用户ID
-    current_user_id = None
-    try:
-        current_user_id = get_current_user(req)
-    except HTTPException:
-        pass  # 如果未登录，user_id为None
-    
     # 查找原对战
     result = await db.execute(
         select(Battle).where(Battle.id == request.session_id)
@@ -188,11 +168,6 @@ async def continue_battle(
 
     if not old_battle:
         raise HTTPException(status_code=404, detail="原对战会话不存在")
-    
-    # 验证原对战会话是否属于当前用户（如果用户已登录）
-    if current_user_id is not None:
-        if old_battle.user_id != current_user_id:
-            raise HTTPException(status_code=403, detail="无权访问此对战会话")
 
     # 不创建新记录，直接返回原会话ID
     # 当用户真正发送消息时，battle_chat 会检测到这是"继续对话"模式并创建新记录
@@ -212,14 +187,6 @@ async def battle_chat(
     在对战模式下发送消息
     两个模型一次性回复（非流式）
     """
-    # 获取当前登录用户ID（先不更新提问次数，等操作成功后再更新）
-    current_user_id = None
-    try:
-        current_user_id = get_current_user(req)
-    except HTTPException:
-        # 如果未登录，继续执行但不更新提问次数
-        pass
-    
     # 如果没有 session_id，说明是本轮首次提问：此时创建对战会话
     if not request.session_id:
         # 基于模型 id 去重后，随机选择两个不同的模型
@@ -235,7 +202,7 @@ async def battle_chat(
         model_a, model_b = random.sample(unique_models, 2)
 
         battle = Battle(
-            user_id=current_user_id,
+            user_id=None,
             model_a_id=model_a["id"],
             model_b_id=model_b["id"],
             conversation=[],
@@ -254,17 +221,12 @@ async def battle_chat(
         if not battle:
             raise HTTPException(status_code=404, detail="对战会话不存在")
         
-        # 验证会话是否属于当前用户（如果用户已登录）
-        if current_user_id is not None:
-            if battle.user_id != current_user_id:
-                raise HTTPException(status_code=403, detail="无权访问此对战会话")
-        
         # 如果原会话已完成投票（winner 不为 NULL），说明这是"继续对话"模式
         # 需要创建新的 Battle 记录，复用模型和历史对话
         if battle.winner is not None:
             # 创建新的对战会话，复用模型与历史对话
             new_battle = Battle(
-                user_id=current_user_id,
+                user_id=None,
                 model_a_id=battle.model_a_id,
                 model_b_id=battle.model_b_id,
                 conversation=battle.conversation.copy() if battle.conversation else [],
@@ -337,13 +299,6 @@ async def battle_chat(
     battle.conversation = new_history
     battle.model_a_response = response_a
     battle.model_b_response = response_b
-    
-    # 更新用户提问次数（在对话成功后再更新，保证一致性）
-    if current_user_id is not None:
-        result = await db.execute(select(User).where(User.id == current_user_id))
-        user = result.scalar_one_or_none()
-        if user:
-            user.question_count = (user.question_count or 0) + 1
 
     await db.commit()
 
@@ -351,66 +306,6 @@ async def battle_chat(
         session_id=battle.id,
         response_a=response_a,
         response_b=response_b,
-    )
-
-
-@router.post("/evaluation", response_model=EvaluationResponse)
-async def submit_evaluation(
-    request: EvaluationRequest,
-    req: Request,
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    提交测评维度数据
-    
-    注意：四个维度的评分（perception, calibration, differentiation, regulation）
-    仅用于记录和分析，不会影响 model_rating 的计算。
-    model_rating 只根据投票结果（winner）更新。
-    """
-    # 获取当前登录用户ID
-    current_user_id = None
-    try:
-        current_user_id = get_current_user(req)
-    except HTTPException:
-        pass  # 如果未登录，user_id为None
-    
-    # 获取对战会话
-    result = await db.execute(
-        select(Battle).where(Battle.id == request.session_id)
-    )
-    battle = result.scalar_one_or_none()
-    
-    if not battle:
-        raise HTTPException(status_code=404, detail="对战会话不存在")
-    
-    # 验证会话是否属于当前用户（如果用户已登录）
-    if current_user_id is not None:
-        if battle.user_id != current_user_id:
-            raise HTTPException(status_code=403, detail="无权访问此对战会话")
-    
-    # 保存测评维度数据
-    evaluation_data = request.evaluation
-    for model_type in ["model_a", "model_b"]:
-        if model_type in evaluation_data:
-            model_eval = evaluation_data[model_type]
-            # 根据model_type获取对应的模型ID
-            model_id = battle.model_a_id if model_type == "model_a" else battle.model_b_id
-            eval_record = BattleEvaluation(
-                battle_id=battle.id,
-                model_type=model_type,
-                model_id=model_id,
-                perception=model_eval.get("perception"),
-                calibration=model_eval.get("calibration"),
-                differentiation=model_eval.get("differentiation"),
-                regulation=model_eval.get("regulation")
-            )
-            db.add(eval_record)
-    
-    await db.commit()
-    
-    return EvaluationResponse(
-        success=True,
-        message="测评维度提交成功"
     )
 
 
@@ -424,13 +319,6 @@ async def submit_vote(
     提交投票并更新积分制评分
     投票后揭示模型身份
     """
-    # 获取当前登录用户ID
-    current_user_id = None
-    try:
-        current_user_id = get_current_user(req)
-    except HTTPException:
-        pass  # 如果未登录，user_id为None
-    
     # 使用 SELECT FOR UPDATE 锁定行，防止并发投票
     result = await db.execute(
         select(Battle)
@@ -441,11 +329,6 @@ async def submit_vote(
     
     if not battle:
         raise HTTPException(status_code=404, detail="对战会话不存在")
-    
-    # 验证会话是否属于当前用户（如果用户已登录）
-    if current_user_id is not None:
-        if battle.user_id != current_user_id:
-            raise HTTPException(status_code=403, detail="无权访问此对战会话")
     
     # 检查是否已经投过票（winner 不为 None 且不为空字符串）
     # 如果已经投过票，采用幂等性处理：返回成功响应而不是错误
@@ -531,28 +414,6 @@ async def submit_vote(
         source="battle",
     )
     
-    # 更新 BattleEvaluation 记录中的 rating 值（仅用于记录投票后的评分快照，不用于计算）
-    # 注意：四个维度的评分（perception, calibration, differentiation, regulation）不影响 model_rating
-    result_a = await db.execute(
-        select(BattleEvaluation).where(
-            BattleEvaluation.battle_id == battle.id,
-            BattleEvaluation.model_type == "model_a"
-        )
-    )
-    eval_a = result_a.scalar_one_or_none()
-    if eval_a:
-        eval_a.rating = new_rating_a  # 仅记录，不参与计算
-    
-    result_b = await db.execute(
-        select(BattleEvaluation).where(
-            BattleEvaluation.battle_id == battle.id,
-            BattleEvaluation.model_type == "model_b"
-        )
-    )
-    eval_b = result_b.scalar_one_or_none()
-    if eval_b:
-        eval_b.rating = new_rating_b  # 仅记录，不参与计算
-    
     # 提交事务
     await db.commit()
     # 刷新对象状态，确保数据一致
@@ -580,24 +441,18 @@ async def get_battle_history(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    获取当前用户的对战历史记录
+    获取所有对战历史记录（已移除登录，返回所有记录）
     """
-    # 获取当前登录用户ID
-    try:
-        current_user_id = get_current_user(req)
-    except HTTPException:
-        raise HTTPException(status_code=401, detail="请先登录")
-    
-    # 查询当前用户的所有对战记录，按创建时间倒序
+    # 查询所有对战记录，按创建时间倒序
     # 过滤掉 winner 为 NULL 的记录（未完成投票的对战）
     from sqlalchemy import desc
     result = await db.execute(
         select(Battle)
         .where(
-            Battle.user_id == current_user_id,
             Battle.winner.isnot(None)
         )
         .order_by(desc(Battle.created_at))
+        .limit(100)  # 限制返回数量
     )
     battles = result.scalars().all()
     
@@ -635,27 +490,19 @@ async def get_user_questions(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    获取当前用户提出的所有历史问题
+    获取所有历史问题（已移除登录，返回所有记录）
     """
     import logging
     logger = logging.getLogger(__name__)
     
     try:
-        # 获取当前登录用户ID
-        try:
-            current_user_id = get_current_user(req)
-            logger.info(f"获取用户问题列表，用户ID: {current_user_id}")
-        except HTTPException as e:
-            logger.warning(f"用户未登录: {str(e)}")
-            raise HTTPException(status_code=401, detail="请先登录")
-        
-        # 查询当前用户的所有对战记录，按创建时间倒序
+        # 查询所有对战记录，按创建时间倒序
         from sqlalchemy import desc
         try:
             result = await db.execute(
                 select(Battle)
-                .where(Battle.user_id == current_user_id)
                 .order_by(desc(Battle.created_at))
+                .limit(100)  # 限制返回数量
             )
             battles = result.scalars().all()
             logger.info(f"查询到 {len(battles)} 条对战记录")
@@ -735,14 +582,8 @@ async def update_question_valid(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    更新问题的有效性标记
+    更新问题的有效性标记（已移除登录，任何人都可以修改）
     """
-    # 获取当前登录用户ID
-    try:
-        current_user_id = get_current_user(req)
-    except HTTPException:
-        raise HTTPException(status_code=401, detail="请先登录")
-    
     # 验证is_question_valid的值
     if request.is_question_valid not in [0, 1]:
         raise HTTPException(status_code=400, detail="is_question_valid必须是0或1")
@@ -755,10 +596,6 @@ async def update_question_valid(
     
     if not battle:
         raise HTTPException(status_code=404, detail="对战记录不存在")
-    
-    # 验证battle是否属于当前用户
-    if battle.user_id != current_user_id:
-        raise HTTPException(status_code=403, detail="无权修改此问题")
     
     # 记录旧的有效性状态
     old_is_valid = battle.is_question_valid
@@ -810,13 +647,6 @@ async def reveal_models(
     揭示对战中的模型身份
     只有投票后才能查看
     """
-    # 获取当前登录用户ID
-    current_user_id = None
-    try:
-        current_user_id = get_current_user(req)
-    except HTTPException:
-        pass  # 如果未登录，user_id为None
-    
     result = await db.execute(
         select(Battle).where(Battle.id == session_id)
     )
@@ -824,11 +654,6 @@ async def reveal_models(
     
     if not battle:
         raise HTTPException(status_code=404, detail="对战会话不存在")
-    
-    # 验证会话是否属于当前用户（如果用户已登录）
-    if current_user_id is not None:
-        if battle.user_id != current_user_id:
-            raise HTTPException(status_code=403, detail="无权访问此对战会话")
     
     if not battle.is_revealed:
         raise HTTPException(status_code=403, detail="请先投票后再查看模型身份")

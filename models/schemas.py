@@ -81,22 +81,6 @@ class SideBySideVote(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
-class BattleEvaluation(Base):
-    """对战测评维度记录表"""
-    __tablename__ = "battle_evaluations"
-
-    id = Column(String(50), primary_key=True, default=generate_uuid)
-    battle_id = Column(String(50), ForeignKey("battles.id"), nullable=False)
-    model_type = Column(String(10), nullable=False)  # "model_a" 或 "model_b"
-    model_id = Column(String(100), nullable=False)  # 模型 ID
-    perception = Column(Integer, nullable=True)  # 感知：1=符合要求，0=不符合要求
-    calibration = Column(Integer, nullable=True)  # 校准：1=符合要求，0=不符合要求
-    differentiation = Column(Integer, nullable=True)  # 分化：1=符合要求，0=不符合要求
-    regulation = Column(Integer, nullable=True)  # 调节：1=符合要求，0=不符合要求
-    rating = Column(Float, nullable=True)  # 该轮投票后模型的 rating 值
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-
 class User(Base):
     """用户表"""
     __tablename__ = "users"

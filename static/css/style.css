@@ -1155,6 +1155,173 @@ body {
     color: var(--cg-text);
 }
 
+/* Markdown 内容样式 */
+.response-content.markdown-content,
+.markdown-content {
+    white-space: normal;
+}
+
+.response-content h1,
+.markdown-content h1 {
+    font-size: 1.75em;
+    font-weight: 700;
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+    line-height: 1.3;
+}
+
+.response-content h2,
+.markdown-content h2 {
+    font-size: 1.5em;
+    font-weight: 700;
+    margin-top: 0.9em;
+    margin-bottom: 0.5em;
+    line-height: 1.3;
+}
+
+.response-content h3,
+.markdown-content h3 {
+    font-size: 1.25em;
+    font-weight: 600;
+    margin-top: 0.8em;
+    margin-bottom: 0.4em;
+    line-height: 1.3;
+}
+
+.response-content h4,
+.markdown-content h4 {
+    font-size: 1.1em;
+    font-weight: 600;
+    margin-top: 0.7em;
+    margin-bottom: 0.4em;
+    line-height: 1.3;
+}
+
+.response-content p,
+.markdown-content p {
+    margin-top: 0.6em;
+    margin-bottom: 0.6em;
+}
+
+.response-content ul,
+.response-content ol,
+.markdown-content ul,
+.markdown-content ol {
+    margin-top: 0.6em;
+    margin-bottom: 0.6em;
+    padding-left: 1.8em;
+}
+
+.response-content li,
+.markdown-content li {
+    margin-top: 0.3em;
+    margin-bottom: 0.3em;
+}
+
+.response-content code,
+.markdown-content code {
+    background: rgba(0, 0, 0, 0.06);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.9em;
+    color: #d63384;
+}
+
+.response-content pre,
+.markdown-content pre {
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    padding: 1em;
+    overflow-x: auto;
+    margin-top: 0.8em;
+    margin-bottom: 0.8em;
+    line-height: 1.5;
+}
+
+.response-content pre code,
+.markdown-content pre code {
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    color: inherit;
+    font-size: 0.9em;
+}
+
+.response-content blockquote,
+.markdown-content blockquote {
+    border-left: 4px solid rgba(16, 163, 127, 0.3);
+    padding-left: 1em;
+    margin-left: 0;
+    margin-top: 0.8em;
+    margin-bottom: 0.8em;
+    color: var(--cg-muted);
+    font-style: italic;
+}
+
+.response-content a,
+.markdown-content a {
+    color: var(--primary);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s;
+}
+
+.response-content a:hover,
+.markdown-content a:hover {
+    border-bottom-color: var(--primary);
+}
+
+.response-content table,
+.markdown-content table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 0.8em;
+    margin-bottom: 0.8em;
+}
+
+.response-content th,
+.response-content td,
+.markdown-content th,
+.markdown-content td {
+    border: 1px solid var(--border);
+    padding: 0.5em 0.8em;
+    text-align: left;
+}
+
+.response-content th,
+.markdown-content th {
+    background: var(--cg-surface-2);
+    font-weight: 600;
+}
+
+.response-content hr,
+.markdown-content hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1.5em 0;
+}
+
+.response-content img,
+.markdown-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin-top: 0.8em;
+    margin-bottom: 0.8em;
+}
+
+.response-content strong,
+.markdown-content strong {
+    font-weight: 600;
+}
+
+.response-content em,
+.markdown-content em {
+    font-style: italic;
+}
+
 .empty-state {
     color: rgba(13, 13, 13, 0.45);
     text-align: left;
@@ -1240,6 +1407,238 @@ body {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
+}
+
+/* ===== 小学生友好的投票样式 ===== */
+.voting-section.kid-friendly {
+    background: linear-gradient(135deg, #fff9e6 0%, #ffe6f0 50%, #e6f0ff 100%);
+    border: 2px solid #ffd700;
+    border-radius: 20px;
+    padding: 20px 16px;
+    box-shadow: 0 8px 30px rgba(255, 215, 0, 0.2);
+}
+
+.voting-section.kid-friendly h3 {
+    font-size: 18px;
+    color: #ff6b9d;
+    margin-bottom: 16px;
+    font-weight: 700;
+    text-shadow: 1px 1px 2px rgba(255, 107, 157, 0.2);
+}
+
+.voting-section.kid-friendly .vote-buttons {
+    gap: 12px;
+}
+
+.voting-section.kid-friendly .vote-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 20px;
+    min-width: 100px;
+    border-radius: 16px;
+    border: 3px solid transparent;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* 卡通投票图标容器 */
+.voting-section.kid-friendly .vote-btn .vote-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 70px;
+    height: 70px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    margin-bottom: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.voting-section.kid-friendly .vote-btn:hover .vote-icon {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* 主图标 - 大卡通动物 */
+.voting-section.kid-friendly .vote-btn .icon-main {
+    font-size: 42px;
+    display: block;
+    animation: iconFloat 2s ease-in-out infinite;
+}
+
+@keyframes iconFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+/* 角标徽章 A/B */
+.voting-section.kid-friendly .vote-btn .icon-badge {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(135deg, #ff6b9d 0%, #ff8e53 100%);
+    border-radius: 50%;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+    box-shadow: 0 2px 8px rgba(255, 107, 157, 0.4);
+}
+
+.voting-section.kid-friendly .vote-btn .vote-emoji {
+    font-size: 28px;
+    display: block;
+    transition: transform 0.3s ease;
+}
+
+.voting-section.kid-friendly .vote-btn .vote-text {
+    font-size: 15px;
+    font-weight: 700;
+    margin-top: 4px;
+}
+
+/* 小狐狸 A 按钮 - 橙色系 */
+.voting-section.kid-friendly .vote-btn.vote-a {
+    background: linear-gradient(135deg, #ff9a56 0%, #ffb347 100%);
+    color: white;
+    border-color: #ff8c42;
+    box-shadow: 0 6px 20px rgba(255, 154, 86, 0.4);
+}
+
+.voting-section.kid-friendly .vote-btn.vote-a:hover {
+    transform: translateY(-8px) scale(1.05);
+    box-shadow: 0 12px 35px rgba(255, 154, 86, 0.5);
+}
+
+.voting-section.kid-friendly .vote-btn.vote-a .icon-badge {
+    background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+}
+
+/* 小兔子 B 按钮 - 粉蓝色系 */
+.voting-section.kid-friendly .vote-btn.vote-b {
+    background: linear-gradient(135deg, #74b9ff 0%, #a29bfe 100%);
+    color: white;
+    border-color: #81ecec;
+    box-shadow: 0 6px 20px rgba(116, 185, 255, 0.4);
+}
+
+.voting-section.kid-friendly .vote-btn.vote-b:hover {
+    transform: translateY(-8px) scale(1.05);
+    box-shadow: 0 12px 35px rgba(116, 185, 255, 0.5);
+}
+
+.voting-section.kid-friendly .vote-btn.vote-b .icon-badge {
+    background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+}
+
+/* 都超棒按钮 - 彩虹渐变 */
+.voting-section.kid-friendly .vote-btn.vote-tie {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #ffd93d 100%);
+    color: white;
+    border-color: #f093fb;
+    box-shadow: 0 6px 20px rgba(240, 147, 251, 0.4);
+}
+
+.voting-section.kid-friendly .vote-btn.vote-tie:hover {
+    transform: translateY(-8px) scale(1.05);
+    box-shadow: 0 12px 35px rgba(240, 147, 251, 0.5);
+}
+
+/* 都要加油按钮 - 灰绿色系 */
+.voting-section.kid-friendly .vote-btn.vote-bad {
+    background: linear-gradient(135deg, #a8e6cf 0%, #88d8b0 100%);
+    color: #2d5a4a;
+    border-color: #7dc9a0;
+    box-shadow: 0 6px 20px rgba(168, 230, 207, 0.4);
+}
+
+.voting-section.kid-friendly .vote-btn.vote-bad:hover {
+    transform: translateY(-8px) scale(1.05);
+    box-shadow: 0 12px 35px rgba(168, 230, 207, 0.5);
+}
+
+/* 悬停时图标弹跳动画 */
+.voting-section.kid-friendly .vote-btn:hover .icon-main {
+    animation: iconBounce 0.6s ease-in-out;
+}
+
+@keyframes iconBounce {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    20% { transform: scale(1.2) rotate(-10deg); }
+    40% { transform: scale(0.9) rotate(5deg); }
+    60% { transform: scale(1.15) rotate(-5deg); }
+    80% { transform: scale(0.95) rotate(2deg); }
+}
+
+/* 悬停时 emoji 弹跳动画（向后兼容） */
+.voting-section.kid-friendly .vote-btn:hover .vote-emoji {
+    animation: emojiWiggle 0.5s ease-in-out;
+}
+
+@keyframes emojiWiggle {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(-10deg) scale(1.2); }
+    50% { transform: rotate(10deg) scale(1.2); }
+    75% { transform: rotate(-5deg) scale(1.1); }
+}
+
+/* 点击效果 */
+.voting-section.kid-friendly .vote-btn:active {
+    transform: scale(0.95);
+}
+
+/* 选中后的庆祝效果 */
+.voting-section.kid-friendly .vote-btn.selected {
+    animation: celebratePop 0.6s ease-out;
+}
+
+@keyframes celebratePop {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.15); }
+    50% { transform: scale(0.95); }
+    70% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* 禁用状态 */
+.voting-section.kid-friendly .vote-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none;
+}
+
+/* 入场动画 - 依次出现 */
+.voting-section.kid-friendly .vote-btn:nth-child(1) { animation: slideInBounce 0.4s 0.1s both; }
+.voting-section.kid-friendly .vote-btn:nth-child(2) { animation: slideInBounce 0.4s 0.2s both; }
+.voting-section.kid-friendly .vote-btn:nth-child(3) { animation: slideInBounce 0.4s 0.3s both; }
+.voting-section.kid-friendly .vote-btn:nth-child(4) { animation: slideInBounce 0.4s 0.4s both; }
+
+@keyframes slideInBounce {
+    0% {
+        opacity: 0;
+        transform: translateY(30px) scale(0.8);
+    }
+    60% {
+        transform: translateY(-5px) scale(1.05);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .reveal-grid {
@@ -1632,6 +2031,10 @@ body {
     overflow-wrap: break-word;
 }
 
+.history-msg-content.markdown-content {
+    white-space: normal;
+}
+
 .history-msg.user-msg {
     background: #e0f2fe;
     color: #0c4a6e;
@@ -1848,77 +2251,6 @@ body {
     margin-top: 8px;
 }
 
-/* 测评维度样式 */
-.evaluation-section {
-    margin-top: 16px;
-    padding: 16px;
-    background: #f8fafc;
-    border-radius: 8px;
-    border: 1px solid #e5e7eb;
-}
-
-.evaluation-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text);
-    margin-bottom: 12px;
-}
-
-.evaluation-dimensions {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.evaluation-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.evaluation-item label {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--muted);
-    min-width: 50px;
-}
-
-.evaluation-options {
-    display: flex;
-    gap: 8px;
-    flex: 1;
-}
-
-.eval-btn {
-    flex: 1;
-    padding: 8px 12px;
-    border: 1px solid var(--border);
-    background: #fff;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    color: var(--text);
-}
-
-.eval-btn:hover {
-    background: #f3f4f6;
-    border-color: var(--primary);
-}
-
-.eval-btn.selected {
-    background: var(--primary);
-    color: #fff;
-    border-color: var(--primary);
-}
-
-.evaluation-submit-section {
-    margin-top: 16px;
-    text-align: center;
-    padding: 16px;
-}
-
 /* 测评问题列表样式 */
 .questions-list {
     background: var(--cg-surface);
@@ -2030,4 +2362,193 @@ body {
 
 .question-valid-btn:active {
     transform: translateY(0);
+}
+
+/* ===== 小学生友好的按钮样式 ===== */
+.kid-btn {
+    background: linear-gradient(135deg, #ff6b9d 0%, #ff8e53 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 16px !important;
+    padding: 14px 28px !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(255, 107, 157, 0.4);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.kid-btn:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 10px 30px rgba(255, 107, 157, 0.5);
+}
+
+.kid-btn:active {
+    transform: scale(0.98);
+}
+
+.kid-btn-outline {
+    background: white !important;
+    color: #ff6b9d !important;
+    border: 3px solid #ff6b9d !important;
+    border-radius: 16px !important;
+    padding: 12px 24px !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.kid-btn-outline:hover {
+    background: #fff5f8 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 107, 157, 0.3);
+}
+
+/* 揭晓区域 - 小学生友好 */
+.reveal-section.kid-friendly {
+    background: linear-gradient(135deg, #e0f7fa 0%, #e8f5e9 100%);
+    border: 2px solid #81c784;
+    border-radius: 20px;
+    padding: 24px;
+    text-align: center;
+}
+
+.reveal-section.kid-friendly .reveal-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+}
+
+/* 模型回复框 - 小学生友好样式 */
+.response-box-a {
+    border-color: #4facfe !important;
+    border-width: 2px;
+}
+
+.response-box-a .response-header {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+    color: white !important;
+    font-size: 16px !important;
+}
+
+.response-box-b {
+    border-color: #a855f7 !important;
+    border-width: 2px;
+}
+
+.response-box-b .response-header {
+    background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%) !important;
+    color: white !important;
+    font-size: 16px !important;
+}
+
+/* 加载中动画 - 更可爱 */
+.response-content .loading {
+    font-size: 16px;
+    color: #666;
+    animation: thinking 1.5s ease-in-out infinite;
+}
+
+@keyframes thinking {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+/* ===== 庆祝效果样式 ===== */
+.celebration-toast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.5);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px 40px;
+    border-radius: 20px;
+    font-size: 24px;
+    font-weight: 700;
+    z-index: 10000;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.5);
+    text-align: center;
+}
+
+.celebration-toast.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.celebration-text {
+    display: inline-block;
+    animation: textPop 0.5s ease-out;
+}
+
+@keyframes textPop {
+    0% { transform: scale(0.8); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* 彩色粒子容器 */
+.confetti-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    overflow: hidden;
+}
+
+/* 单个彩色粒子 */
+.confetti {
+    position: absolute;
+    top: -10px;
+    left: var(--x);
+    width: 12px;
+    height: 12px;
+    background: var(--color);
+    border-radius: 2px;
+    animation: confettiFall 2.5s var(--delay) ease-out forwards;
+    transform: rotate(var(--rotation));
+}
+
+.confetti:nth-child(odd) {
+    width: 8px;
+    height: 14px;
+    border-radius: 50%;
+}
+
+.confetti:nth-child(3n) {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+@keyframes confettiFall {
+    0% {
+        opacity: 1;
+        top: -10px;
+        transform: rotate(var(--rotation)) translateX(0);
+    }
+    25% {
+        transform: rotate(calc(var(--rotation) + 90deg)) translateX(20px);
+    }
+    50% {
+        transform: rotate(calc(var(--rotation) + 180deg)) translateX(-20px);
+    }
+    75% {
+        transform: rotate(calc(var(--rotation) + 270deg)) translateX(15px);
+    }
+    100% {
+        opacity: 0;
+        top: 100vh;
+        transform: rotate(calc(var(--rotation) + 360deg)) translateX(-10px);
+    }
 }
